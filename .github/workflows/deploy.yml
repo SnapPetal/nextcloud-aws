@@ -1,0 +1,59 @@
+name: Deploy to AWS Lightsail
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Lightsail
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USER }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          script: |
+            # Navigate to project directory
+            cd ~/nextcloud-aws || exit 1
+
+            # Pull latest changes
+            git pull origin main
+
+            # Pull latest Docker images
+            docker compose pull
+
+            # Restart containers with new configuration
+            docker compose up -d
+
+            # Clean up old images
+            docker image prune -f
+
+            # Show running containers
+            docker compose ps
+
+      - name: Health Check
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.LIGHTSAIL_HOST }}
+          username: ${{ secrets.LIGHTSAIL_USER }}
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          script: |
+            # Wait for containers to be healthy
+            sleep 10
+
+            # Check if all containers are running
+            if [ $(docker compose -f ~/nextcloud-aws/docker-compose.yml ps -q | wc -l) -eq 5 ]; then
+              echo "All containers are running successfully!"
+            else
+              echo "Warning: Some containers may not be running"
+              docker compose -f ~/nextcloud-aws/docker-compose.yml ps
+              exit 1
+            fi

@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    container_name: nextcloud-redis
+    restart: unless-stopped
+    networks:
+      - nextcloud-net
+
+  app:
+    image: nextcloud:apache
+    container_name: nextcloud-app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ${DATA_PATH}/nextcloud:/var/www/html
+      - ${DATA_PATH}/data:/var/www/html/data
+    environment:
+      # Database Configuration (Lightsail Managed Database)
+      - MYSQL_HOST=${DB_HOST}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+
+      # PostgreSQL Configuration (uncomment if using PostgreSQL)
+      # - POSTGRES_HOST=${DB_HOST}
+      # - POSTGRES_DB=${DB_NAME}
+      # - POSTGRES_USER=${DB_USER}
+      # - POSTGRES_PASSWORD=${DB_PASSWORD}
+
+      # Redis Configuration
+      - REDIS_HOST=redis
+
+      # Nextcloud Configuration
+      - NEXTCLOUD_TRUSTED_DOMAINS=${DOMAIN} ${PRIVATE_IP}
+      - TRUSTED_PROXIES=10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+      - OVERWRITEHOST=${DOMAIN}
+      - OVERWRITEPROTOCOL=https
+      - OVERWRITECLIURL=https://${DOMAIN}
+      - APACHE_DISABLE_REWRITE_IP=1
+
+      # Performance tuning
+      - PHP_MEMORY_LIMIT=512M
+      - PHP_UPLOAD_LIMIT=10G
+      - APACHE_BODY_LIMIT=10737418240
+    depends_on:
+      - redis
+    networks:
+      - nextcloud-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/status.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  nextcloud-net:
+    driver: bridge
