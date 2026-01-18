@@ -24,17 +24,11 @@ services:
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASSWORD}
 
-      # PostgreSQL Configuration (uncomment if using PostgreSQL)
-      # - POSTGRES_HOST=${DB_HOST}
-      # - POSTGRES_DB=${DB_NAME}
-      # - POSTGRES_USER=${DB_USER}
-      # - POSTGRES_PASSWORD=${DB_PASSWORD}
-
       # Redis Configuration
       - REDIS_HOST=redis
 
       # Nextcloud Configuration
-      - NEXTCLOUD_TRUSTED_DOMAINS=${DOMAIN} ${PRIVATE_IP}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${DOMAIN}
       - TRUSTED_PROXIES=10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
       - OVERWRITEHOST=${DOMAIN}
       - OVERWRITEPROTOCOL=https
