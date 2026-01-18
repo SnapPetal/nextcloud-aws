@@ -111,11 +111,57 @@ DATA_PATH=/mnt/nextcloud-data
 
 Save and exit (Ctrl+X, Y, Enter)
 
-## Step 5: Deploy Nextcloud
+## Step 5: Setup Nginx Reverse Proxy
+
+Install Nginx:
+
+```bash
+sudo apt install nginx -y
+```
+
+Create Nginx configuration:
+
+```bash
+sudo nano /etc/nginx/sites-available/nextcloud
+```
+
+Paste this configuration:
+
+```nginx
+server {
+    listen 80;
+    server_name cloud.thonbecker.biz;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 10G;
+        proxy_request_buffering off;
+    }
+}
+```
+
+Save and exit (Ctrl+X, Y, Enter)
+
+Enable the site:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/nextcloud /etc/nginx/sites-enabled/
+sudo rm /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+## Step 6: Deploy Nextcloud
 
 Start the containers:
 
 ```bash
+cd ~/nextcloud-aws
 docker compose up -d
 ```
 
@@ -125,20 +171,20 @@ Check logs:
 docker compose logs -f
 ```
 
-Wait until you see "Nextcloud is accessible" messages.
+Wait until you see "Nextcloud is accessible" messages. Press Ctrl+C to exit logs.
 
-## Step 6: Install SSL Certificate
+## Step 7: Install SSL Certificate
 
-Install Certbot:
+Install Certbot with Nginx plugin:
 
 ```bash
-sudo apt install certbot python3-certbot-apache -y
+sudo apt install python3-certbot-nginx -y
 ```
 
 Get SSL certificate:
 
 ```bash
-sudo certbot --apache -d cloud.thonbecker.biz
+sudo certbot --nginx -d cloud.thonbecker.biz
 ```
 
 Follow the prompts:
@@ -146,14 +192,16 @@ Follow the prompts:
 - Agree to terms
 - Choose to redirect HTTP to HTTPS (option 2)
 
-## Step 7: Access Nextcloud
+The certificate will auto-renew via cron.
+
+## Step 8: Access Nextcloud
 
 1. Open browser and go to: **https://cloud.thonbecker.biz**
 2. Create admin account
 3. Database is already configured via environment variables
 4. Complete setup wizard
 
-## Step 8: Configure GitHub Actions (Optional)
+## Step 9: Configure GitHub Actions (Optional)
 
 Generate SSH key for automated deployments:
 

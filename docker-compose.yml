@@ -13,7 +13,7 @@ services:
     container_name: nextcloud-app
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "127.0.0.1:8080:80"
     volumes:
       - ${DATA_PATH}/nextcloud:/var/www/html
       - ${DATA_PATH}/data:/var/www/html/data
