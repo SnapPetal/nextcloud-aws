@@ -95,6 +95,7 @@ See [docs/NGINX-SETUP.md](docs/NGINX-SETUP.md) for complete configuration.
 - ✅ Calendar (CalDAV sync)
 - ✅ Contacts (CardDAV sync)
 - ✅ Photos (timeline view)
+- ✅ Nextcloud Office (Collabora Online - document editing)
 - Additional apps can be enabled as needed
 
 ## Sync Clients
@@ -209,7 +210,6 @@ cd ~/nextcloud-aws
 - Consider upgrading instance to 4 GB RAM if performance degrades
 - Monitor storage usage as photo collection grows
 - Can expand to 512 GB disk if needed (~$50/month)
-- May want to enable Nextcloud Office for document editing
 
 ## Support Resources
 
