@@ -43,15 +43,65 @@ server {
     listen 80;
     server_name cloud.thonbecker.biz;
 
+    # Redirect to HTTPS (Certbot will handle this)
+    location / {
+        return 301 https://$server_name$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name cloud.thonbecker.biz;
+
+    # SSL certificates (managed by Certbot)
+    ssl_certificate /etc/letsencrypt/live/cloud.thonbecker.biz/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/cloud.thonbecker.biz/privkey.pem;
+
+    # Logging
+    access_log /var/log/nginx/nextcloud_access.log;
+    error_log /var/log/nginx/nextcloud_error.log;
+
+    # Max upload size
+    client_max_body_size 10G;
+    client_body_timeout 300s;
+    fastcgi_buffers 64 4K;
+
+    # Add headers for Nextcloud
+    add_header Strict-Transport-Security "max-age=15768000; includeSubDomains; preload;" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Download-Options "noopen" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Permitted-Cross-Domain-Policies "none" always;
+    add_header X-Robots-Tag "noindex, nofollow" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # CalDAV and CardDAV redirects (required for iOS/Android sync)
+    location = /.well-known/carddav {
+        return 301 $scheme://$host/remote.php/dav;
+    }
+
+    location = /.well-known/caldav {
+        return 301 $scheme://$host/remote.php/dav;
+    }
+
+    # Proxy to Nextcloud container
     location / {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
 
-        client_max_body_size 10G;
+        proxy_buffering off;
         proxy_request_buffering off;
+        proxy_max_temp_file_size 0;
+
+        proxy_connect_timeout 600s;
+        proxy_send_timeout 600s;
+        proxy_read_timeout 600s;
     }
 }
 ```
