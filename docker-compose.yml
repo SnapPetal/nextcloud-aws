@@ -7,10 +7,7 @@ services:
       - nextcloud-net
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: nextcloud-custom:latest
+    image: nextcloud:apache
     container_name: nextcloud-app
     restart: unless-stopped
     ports:

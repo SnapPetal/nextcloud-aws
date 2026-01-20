@@ -143,68 +143,60 @@ docker stats
 
 ## Performance Tips
 
-### 1. Enable Video Transcoding (Essential for MTS/AVI/MKV files)
-Allows smooth video playback without downloading entire files. **Required for camcorder MTS files** and other non-web formats.
+### 1. Video Format Compatibility & Conversion
 
-**Prerequisites: Rebuild with ffmpeg (one-time, 5-10 minutes):**
+**Natively supported formats (play instantly in browser):**
+- ✅ **MP4** (H.264/H.265) - Best compatibility
+- ✅ **WebM** - Web-optimized format
+- ✅ **MOV** (H.264) - iPhone videos
+
+**Non-supported formats (won't play in browser):**
+- ❌ **MTS** (AVCHD camcorder files)
+- ❌ **AVI** (older format)
+- ❌ **MKV** (Matroska container)
+
+**Recommended: Convert to MP4 Before Uploading**
+
+Converting MTS/AVI/MKV to MP4 before upload gives you:
+- ✅ Instant playback in browser (no transcoding delay)
+- ✅ Smaller file sizes (20-30% reduction typical)
+- ✅ Better compatibility across all devices
+- ✅ No server configuration needed
+
+**How to Convert Videos to MP4:**
+
+**Option 1: HandBrake (Easiest, Free)**
+1. Download: https://handbrake.fr/
+2. Drag your MTS/AVI/MKV files into HandBrake
+3. Select preset: "Fast 1080p30" or "Very Fast 1080p30"
+4. Click "Start Encode"
+5. Upload the converted MP4 files to Nextcloud
+
+**Option 2: VLC Media Player**
+1. Open VLC → Media → Convert/Save
+2. Add your video files
+3. Profile: "Video - H.264 + MP3 (MP4)"
+4. Choose destination filename
+5. Click "Start"
+
+**Option 3: FFmpeg Command Line** (if installed on your computer)
 ```bash
-# SSH to your server
-ssh ubuntu@<your-ip>
-cd ~/nextcloud-aws
+# Single file
+ffmpeg -i video.mts -c:v libx264 -crf 23 -c:a aac video.mp4
 
-# Pull latest code with Dockerfile
-git pull origin main
-
-# Rebuild container with ffmpeg support
-./scripts/rebuild-with-ffmpeg.sh
+# Batch convert all MTS files in a folder
+for file in *.mts; do ffmpeg -i "$file" -c:v libx264 -crf 23 -c:a aac "${file%.mts}.mp4"; done
 ```
 
-This rebuild script:
-- Builds custom Nextcloud image with ffmpeg
-- Causes ~2-3 minutes of downtime
-- Only needed once (cached for future updates)
+**Storage impact:**
+- MTS videos are often larger than MP4
+- Converting typically saves 20-30% space
+- Example: 10 GB of MTS → ~7-8 GB of MP4
 
-**Then configure video transcoding:**
-```bash
-# After rebuild completes, run this
-./scripts/setup-video-transcoding.sh
-```
-
-This configuration script:
-- Verifies ffmpeg is installed
-- Enables video preview providers (MP4, MTS, AVI, MKV, MOV, etc.)
-- Configures Memories for transcoding
-- Sets transcoding quality to 1080p
-- Tests the setup
-
-**Supported video formats after setup:**
-- ✅ **MTS** (AVCHD camcorder files) - auto-transcoded to MP4
-- ✅ **MP4** (plays natively)
-- ✅ **MOV** (iPhone/QuickTime)
-- ✅ **AVI** (older format) - auto-transcoded
-- ✅ **MKV** (Matroska) - auto-transcoded
-- ✅ **WebM, FLV** and more
-
-**How it works:**
-1. Upload videos to Nextcloud (any format)
-2. Play in Memories app
-3. First playback: Takes 30-60 seconds to transcode (one-time)
-4. Subsequent playback: Instant from cache
-
-**Performance expectations (4GB RAM / 2 vCPU):**
-- 1080p videos: Smooth transcoding and playback
-- 4K videos: Slower transcoding but works
-- MTS camcorder files: Convert to H.264 MP4 automatically
-- Cache stored in Nextcloud data directory
-
-**Monitor transcoding progress:**
-```bash
-# Watch transcoding in real-time
-docker compose logs -f app | grep -i ffmpeg
-
-# Check resource usage
-docker stats
-```
+**After conversion:**
+- Upload MP4 files to Nextcloud
+- They play instantly in Memories app
+- Work perfectly on all devices
 
 ### 2. Configure Preview Sizes
 Optimize preview sizes for your usage:
@@ -359,7 +351,6 @@ If you need even better performance:
 # Setup scripts (one-time)
 ./scripts/setup-auto-previews.sh       # Configure automatic thumbnails
 ./scripts/setup-face-recognition.sh    # Configure face recognition
-./scripts/setup-video-transcoding.sh   # Configure video transcoding (MTS, AVI, MKV)
 
 # Generate all previews
 ./scripts/generate-previews.sh

@@ -11,7 +11,7 @@ Internet → cloud.thonbecker.biz (HTTPS) → Lightsail Instance → Nextcloud +
 ```
 
 ### Components
-- **Nextcloud App**: Custom Docker image based on `nextcloud:apache` with ffmpeg for video transcoding
+- **Nextcloud App**: Official `nextcloud:apache` Docker image
 - **Redis Cache**: Lightweight caching for improved performance and file locking
 - **Database**: AWS Lightsail managed MySQL database
 - **Storage**: Separate Lightsail block storage volume (300 GB) for persistent data
@@ -379,12 +379,8 @@ nextcloud-aws/
 │   ├── maintenance.sh                # Interactive maintenance menu
 │   ├── generate-previews.sh          # Photo preview generation
 │   ├── setup-auto-previews.sh        # Configure automatic thumbnails
-│   ├── setup-face-recognition.sh     # Configure AI face recognition
-│   ├── setup-video-transcoding.sh    # Configure video transcoding (MTS/AVI/MKV)
-│   └── rebuild-with-ffmpeg.sh        # Rebuild container with ffmpeg support
-├── Dockerfile                        # Custom Nextcloud image with ffmpeg
+│   └── setup-face-recognition.sh     # Configure AI face recognition
 ├── docker-compose.yml                # Docker Compose configuration
-├── .dockerignore                     # Docker build exclusions
 ├── .env.example                      # Environment variables template
 ├── PRODUCTION-SETUP.md               # Production infrastructure docs
 ├── QUICKSTART.md                     # Quick start guide
