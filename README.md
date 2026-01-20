@@ -333,6 +333,14 @@ Monthly AWS costs:
 - Opcache enabled for faster performance
 - Preview generation scripts included
 - Memories app recommended for best experience
+- AI-powered face recognition available
+
+**Features:**
+- 🚀 Fast photo browsing with automatic thumbnail generation
+- 🎭 Face recognition and people detection
+- 📹 Video transcoding and streaming
+- 🗺️ Map view with GPS data
+- 📱 Mobile app support
 
 **See:** [docs/PHOTO-VIDEO-OPTIMIZATION.md](docs/PHOTO-VIDEO-OPTIMIZATION.md) for complete optimization guide
 
@@ -369,7 +377,9 @@ nextcloud-aws/
 ├── scripts/
 │   ├── setup-server.sh               # Initial server setup
 │   ├── maintenance.sh                # Interactive maintenance menu
-│   └── generate-previews.sh          # Photo preview generation
+│   ├── generate-previews.sh          # Photo preview generation
+│   ├── setup-auto-previews.sh        # Configure automatic thumbnails
+│   └── setup-face-recognition.sh     # Configure AI face recognition
 ├── docker-compose.yml                # Docker Compose configuration
 ├── .env.example                      # Environment variables template
 ├── PRODUCTION-SETUP.md               # Production infrastructure docs

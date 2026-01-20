@@ -70,6 +70,77 @@ crontab -e
 
 This ensures new photos automatically get thumbnails within 15 minutes of upload.
 
+### 3. Face Recognition (AI-Powered People Detection)
+Automatically detect and group faces in your photo collection using AI.
+
+**One-time setup (installs Recognize app + runs initial scan):**
+```bash
+# SSH to your server
+ssh ubuntu@<your-ip>
+cd ~/nextcloud-aws
+./scripts/setup-face-recognition.sh
+```
+
+This interactive script:
+- Installs the Recognize app (AI face detection engine)
+- Downloads AI models for face recognition
+- Runs initial face classification on all photos
+- Shows how to set up automatic processing for new photos
+
+**What happens during initial scan:**
+- Scans all your photos for faces
+- Groups similar faces together
+- Takes several hours for large collections (157 GB = possibly overnight)
+- CPU intensive but runs in background
+- Your 4 GB instance handles it fine
+
+**After setup - Using face recognition:**
+
+1. **View face clusters:**
+   - Go to https://cloud.thonbecker.biz/apps/memories
+   - Click the **"People"** tab (face icon)
+   - See all detected faces grouped by similarity
+
+2. **Name people:**
+   - Click on a face cluster
+   - Click "Rename" or the edit icon
+   - Type the person's name
+   - All photos with that face are now tagged
+
+3. **Merge duplicate clusters:**
+   - If same person appears in multiple clusters
+   - Select clusters and merge them
+   - Improves accuracy over time
+
+**Automatic face recognition for NEW photos:**
+Add to crontab to process new photos nightly:
+```bash
+# Edit crontab
+crontab -e
+
+# Add this line (runs every night at 2 AM):
+0 2 * * * cd ~/nextcloud-aws && docker compose exec -u www-data app php occ recognize:classify >> /tmp/recognize.log 2>&1
+```
+
+**Monitor progress:**
+```bash
+# View face recognition logs
+tail -f /tmp/recognize.log
+
+# Check what's happening
+docker compose logs -f app | grep -i recognize
+
+# Check resource usage during processing
+docker stats
+```
+
+**Performance expectations (4 GB RAM / 2 vCPU instance):**
+- Initial scan: Several hours to overnight for 157 GB
+- Incremental scans: 5-15 minutes for new photos
+- Accuracy: Good (same as high-end servers)
+- Speed: Slower than powerful servers but totally usable
+- Face recognition improves as you name more faces
+
 ## Performance Tips
 
 ### 1. Enable Video Transcoding (for Memories app)
@@ -234,8 +305,15 @@ If you need even better performance:
 ## Quick Commands Reference
 
 ```bash
+# Setup scripts (one-time)
+./scripts/setup-auto-previews.sh       # Configure automatic thumbnails
+./scripts/setup-face-recognition.sh    # Configure face recognition
+
 # Generate all previews
 ./scripts/generate-previews.sh
+
+# Run face recognition
+docker compose exec -u www-data app php occ recognize:classify
 
 # Scan new files
 docker compose exec -u www-data app php occ files:scan --all
@@ -248,6 +326,8 @@ docker compose restart
 
 # Check logs
 docker compose logs -f app
+tail -f /tmp/recognize.log            # Face recognition logs
+tail -f /tmp/preview-generate.log     # Preview generation logs
 
 # Check resource usage
 docker stats
@@ -256,11 +336,13 @@ docker stats
 ## Recommended Workflow
 
 1. ✅ Install Memories app
-2. ✅ Upload photos via desktop client or MultCloud
-3. ✅ Run preview generation once uploaded
-4. ✅ Enable face recognition if desired
-5. ✅ Set up automatic preview generation (cron)
-6. ✅ Enjoy fast photo browsing!
+2. ✅ Set up automatic preview generation: `./scripts/setup-auto-previews.sh`
+3. ✅ Upload photos via desktop client or MultCloud
+4. ✅ Run preview generation once uploaded: `./scripts/generate-previews.sh`
+5. ✅ Set up face recognition: `./scripts/setup-face-recognition.sh`
+6. ✅ Name faces in Memories People tab
+7. ✅ Set up cron jobs for automatic processing
+8. ✅ Enjoy fast photo browsing with AI-powered face recognition!
 
 ---
 
