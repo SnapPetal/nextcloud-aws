@@ -12,11 +12,11 @@ This file documents the actual production configuration of cloud.thonbecker.biz.
 
 | Resource | Name | Specs | Cost |
 |----------|------|-------|------|
-| Instance | nextcloud-prod | Ubuntu 22.04, 2 GB RAM, 1 vCPU | $10/month |
+| Instance | nextcloud-prod | Ubuntu 22.04, 4 GB RAM, 2 vCPU | $20/month |
 | Block Storage | nextcloud-prod-data-300gb | 300 GB SSD | $30/month |
 | Database | nextcloud-prod-db | MySQL 8.0 Standard | $15/month |
 | Static IP | nextcloud-prod-ip | IPv4 | Free |
-| **Total** | | | **$55/month** |
+| **Total** | | | **$65/month** |
 
 ### Storage Breakdown
 
@@ -144,9 +144,10 @@ cd ~/nextcloud-aws
 ## Performance Settings
 
 **PHP:**
-- Memory limit: 512M
+- Memory limit: 2G (optimized for 4 GB instance)
 - Upload limit: 10G
 - Execution time: 3600s
+- Opcache: Enabled (256 MB)
 
 **Apache:**
 - Body limit: 10 GB
@@ -154,6 +155,9 @@ cd ~/nextcloud-aws
 **Nginx:**
 - Client max body size: 10G
 - Timeouts: 600s
+
+**Redis:**
+- File locking and caching enabled
 
 ## GitHub Actions
 
@@ -205,11 +209,26 @@ cd ~/nextcloud-aws
 - ⚠️ Requires snapshot method (no direct resize)
 - ✅ Completed: 128 GB → 300 GB resize (January 2026)
 
+**Instance upgrade:**
+- ✅ Upgraded: 2 GB RAM → 4 GB RAM (January 2026)
+- ✅ Performance boost for photo/video handling
+
+## Photo & Video Optimizations
+
+**Performance improvements for 157 GB photo collection:**
+- PHP memory increased to 2G
+- Opcache enabled for faster page loads
+- Preview generation script available: `./scripts/generate-previews.sh`
+- Memories app recommended (better than default Photos)
+- Video transcoding support via Memories app
+
+**See:** [docs/PHOTO-VIDEO-OPTIMIZATION.md](docs/PHOTO-VIDEO-OPTIMIZATION.md) for complete guide
+
 ## Future Considerations
 
-- Consider upgrading instance to 4 GB RAM if performance degrades
-- Monitor storage usage as photo collection grows
+- Monitor storage usage as photo collection grows (currently 246 GB available)
 - Can expand to 512 GB disk if needed (~$50/month)
+- Consider 8 GB RAM upgrade if performance degrades with heavy usage
 
 ## Support Resources
 

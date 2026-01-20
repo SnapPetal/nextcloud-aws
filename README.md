@@ -318,44 +318,63 @@ Monthly AWS costs:
 
 | Resource | Specification | Cost |
 |----------|--------------|------|
-| Lightsail Instance | 2 GB RAM, 1 vCPU, Ubuntu 22.04 | $10 |
-| Block Storage | 100 GB | $10 |
+| Lightsail Instance | 4 GB RAM, 2 vCPU, Ubuntu 22.04 | $20 |
+| Block Storage | 300 GB SSD | $30 |
 | Managed Database | MySQL 8.0 Standard | $15 |
 | Static IP | IPv4 | Free |
 | SSL Certificate | Let's Encrypt | Free |
-| **Total** | | **$35/month** |
+| **Total** | | **$65/month** |
+
+## Photo & Video Performance
+
+**Current setup optimized for large photo collections:**
+- 4 GB RAM / 2 vCPU instance
+- PHP memory: 2 GB
+- Opcache enabled for faster performance
+- Preview generation scripts included
+- Memories app recommended for best experience
+
+**See:** [docs/PHOTO-VIDEO-OPTIMIZATION.md](docs/PHOTO-VIDEO-OPTIMIZATION.md) for complete optimization guide
 
 ## Scaling Options
 
-**When you outgrow the $10 instance:**
+**Current instance:** 4 GB RAM, 2 vCPUs ($20/month)
 
-1. **Upgrade instance** (no downtime):
-   - Go to instance → Manage → Change plan
-   - Select $20/month (4 GB RAM, 2 vCPUs)
+**Further scaling options:**
 
-2. **Expand storage** (no downtime):
-   - Go to storage disk → Manage → Increase size
-   - Can only go up, not down
+1. **Upgrade to 8 GB RAM** ($40/month):
+   - Better for heavy concurrent usage
+   - Faster face recognition
+   - Better video transcoding
+
+2. **Expand storage** (via snapshot method):
+   - Current: 300 GB
+   - Can expand to 512 GB (~$50/month) or more
+   - See PRODUCTION-SETUP.md for resize procedure
 
 3. **Upgrade database** (minimal downtime):
    - Go to database → Manage → Change plan
-   - Select larger plan
+   - Select larger plan if needed
 
 ## Project Structure
 
 ```
 nextcloud-aws/
 ├── .github/workflows/
-│   └── deploy.yml              # GitHub Actions deployment
+│   └── deploy.yml                    # GitHub Actions deployment
 ├── docs/
-│   └── CLOUDFRONT-ALB-SETUP.md # Advanced: CloudFront/ALB setup (optional)
+│   ├── NGINX-SETUP.md                # Nginx reverse proxy configuration
+│   ├── PHOTO-VIDEO-OPTIMIZATION.md   # Photo/video performance guide
+│   └── CLOUDFRONT-ALB-SETUP.md       # Advanced: CloudFront/ALB (optional)
 ├── scripts/
-│   ├── setup-server.sh         # Initial server setup
-│   └── maintenance.sh          # Interactive maintenance menu
-├── docker-compose.yml          # Docker Compose configuration
-├── .env.example                # Environment variables template
-├── QUICKSTART.md               # Quick start guide for cloud.thonbecker.biz
-└── README.md                   # This file
+│   ├── setup-server.sh               # Initial server setup
+│   ├── maintenance.sh                # Interactive maintenance menu
+│   └── generate-previews.sh          # Photo preview generation
+├── docker-compose.yml                # Docker Compose configuration
+├── .env.example                      # Environment variables template
+├── PRODUCTION-SETUP.md               # Production infrastructure docs
+├── QUICKSTART.md                     # Quick start guide
+└── README.md                         # This file
 ```
 
 ## Resources

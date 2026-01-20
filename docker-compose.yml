@@ -35,10 +35,16 @@ services:
       - OVERWRITECLIURL=https://${DOMAIN}
       - APACHE_DISABLE_REWRITE_IP=1
 
-      # Performance tuning
-      - PHP_MEMORY_LIMIT=512M
+      # Performance tuning (optimized for 4GB RAM instance)
+      - PHP_MEMORY_LIMIT=2G
       - PHP_UPLOAD_LIMIT=10G
       - APACHE_BODY_LIMIT=10737418240
+
+      # Opcache settings for better PHP performance
+      - PHP_OPCACHE_ENABLE=1
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=256
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=10000
+      - PHP_OPCACHE_REVALIDATE_FREQ=2
     depends_on:
       - redis
     networks:
