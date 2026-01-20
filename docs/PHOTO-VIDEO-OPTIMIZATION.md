@@ -146,15 +146,31 @@ docker stats
 ### 1. Enable Video Transcoding (Essential for MTS/AVI/MKV files)
 Allows smooth video playback without downloading entire files. **Required for camcorder MTS files** and other non-web formats.
 
-**One-time setup (automated script):**
+**Prerequisites: Rebuild with ffmpeg (one-time, 5-10 minutes):**
 ```bash
 # SSH to your server
 ssh ubuntu@<your-ip>
 cd ~/nextcloud-aws
+
+# Pull latest code with Dockerfile
+git pull origin main
+
+# Rebuild container with ffmpeg support
+./scripts/rebuild-with-ffmpeg.sh
+```
+
+This rebuild script:
+- Builds custom Nextcloud image with ffmpeg
+- Causes ~2-3 minutes of downtime
+- Only needed once (cached for future updates)
+
+**Then configure video transcoding:**
+```bash
+# After rebuild completes, run this
 ./scripts/setup-video-transcoding.sh
 ```
 
-This script automatically:
+This configuration script:
 - Verifies ffmpeg is installed
 - Enables video preview providers (MP4, MTS, AVI, MKV, MOV, etc.)
 - Configures Memories for transcoding
