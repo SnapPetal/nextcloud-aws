@@ -143,17 +143,52 @@ docker stats
 
 ## Performance Tips
 
-### 1. Enable Video Transcoding (for Memories app)
-Allows smooth video playback without downloading entire files.
+### 1. Enable Video Transcoding (Essential for MTS/AVI/MKV files)
+Allows smooth video playback without downloading entire files. **Required for camcorder MTS files** and other non-web formats.
 
-**Requirements:**
-- ffmpeg (included in Nextcloud container)
-- Hardware acceleration optional (VA-API on your instance)
+**One-time setup (automated script):**
+```bash
+# SSH to your server
+ssh ubuntu@<your-ip>
+cd ~/nextcloud-aws
+./scripts/setup-video-transcoding.sh
+```
 
-**Configure in Memories app settings:**
-- Enable transcoding for videos
-- Set quality: 1080p or 720p depending on your needs
-- Let it process videos in background
+This script automatically:
+- Verifies ffmpeg is installed
+- Enables video preview providers (MP4, MTS, AVI, MKV, MOV, etc.)
+- Configures Memories for transcoding
+- Sets transcoding quality to 1080p
+- Tests the setup
+
+**Supported video formats after setup:**
+- ✅ **MTS** (AVCHD camcorder files) - auto-transcoded to MP4
+- ✅ **MP4** (plays natively)
+- ✅ **MOV** (iPhone/QuickTime)
+- ✅ **AVI** (older format) - auto-transcoded
+- ✅ **MKV** (Matroska) - auto-transcoded
+- ✅ **WebM, FLV** and more
+
+**How it works:**
+1. Upload videos to Nextcloud (any format)
+2. Play in Memories app
+3. First playback: Takes 30-60 seconds to transcode (one-time)
+4. Subsequent playback: Instant from cache
+
+**Performance expectations (4GB RAM / 2 vCPU):**
+- 1080p videos: Smooth transcoding and playback
+- 4K videos: Slower transcoding but works
+- MTS camcorder files: Convert to H.264 MP4 automatically
+- Cache stored in Nextcloud data directory
+
+**Monitor transcoding progress:**
+```bash
+# Watch transcoding in real-time
+docker compose logs -f app | grep -i ffmpeg
+
+# Check resource usage
+docker stats
+```
 
 ### 2. Configure Preview Sizes
 Optimize preview sizes for your usage:
@@ -308,6 +343,7 @@ If you need even better performance:
 # Setup scripts (one-time)
 ./scripts/setup-auto-previews.sh       # Configure automatic thumbnails
 ./scripts/setup-face-recognition.sh    # Configure face recognition
+./scripts/setup-video-transcoding.sh   # Configure video transcoding (MTS, AVI, MKV)
 
 # Generate all previews
 ./scripts/generate-previews.sh

@@ -379,7 +379,8 @@ nextcloud-aws/
 │   ├── maintenance.sh                # Interactive maintenance menu
 │   ├── generate-previews.sh          # Photo preview generation
 │   ├── setup-auto-previews.sh        # Configure automatic thumbnails
-│   └── setup-face-recognition.sh     # Configure AI face recognition
+│   ├── setup-face-recognition.sh     # Configure AI face recognition
+│   └── setup-video-transcoding.sh    # Configure video transcoding (MTS/AVI/MKV)
 ├── docker-compose.yml                # Docker Compose configuration
 ├── .env.example                      # Environment variables template
 ├── PRODUCTION-SETUP.md               # Production infrastructure docs
