@@ -33,26 +33,42 @@ This guide covers optimizing Nextcloud for handling large photo and video collec
 2. It will automatically index your photos
 3. Enable face recognition in Settings if desired
 
-### 2. Preview Generator
-Pre-generates thumbnails for faster browsing.
+### 2. Preview Generator (Automatic Thumbnails)
+Pre-generates thumbnails for faster browsing. Automatically creates previews for new images.
 
-**Manual generation:**
+**One-time setup (installs app + configures automatic generation):**
+```bash
+# SSH to your server
+ssh ubuntu@<your-ip>
+cd ~/nextcloud-aws
+./scripts/setup-auto-previews.sh
+```
+
+This script:
+- Installs the Preview Generator app
+- Configures optimal preview sizes
+- Shows you how to set up automatic generation for new images
+
+**Manual generation for existing photos:**
 ```bash
 cd ~/nextcloud-aws
 ./scripts/generate-previews.sh
 ```
 
-**Automatic daily generation (cron):**
+**Automatic generation for NEW images (recommended):**
+After running setup script, add this to crontab to process new images every 15 minutes:
 ```bash
 # SSH to your server
 ssh ubuntu@<your-ip>
 
-# Add to crontab
+# Edit crontab
 crontab -e
 
-# Add this line:
-0 3 * * * cd ~/nextcloud-aws && docker compose exec -u www-data app php occ preview:pre-generate
+# Add this line (generates previews for new files every 15 minutes):
+*/15 * * * * cd ~/nextcloud-aws && docker compose exec -u www-data app php occ preview:pre-generate >> /tmp/preview-generate.log 2>&1
 ```
+
+This ensures new photos automatically get thumbnails within 15 minutes of upload.
 
 ## Performance Tips
 
