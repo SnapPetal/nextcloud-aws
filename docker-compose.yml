@@ -15,8 +15,8 @@ services:
     volumes:
       - ${DATA_PATH}/nextcloud:/var/www/html
       - ${DATA_PATH}/data:/var/www/html/data
-      - type: tmpfs
-        target: /tmp:exec
+    tmpfs:
+      - /tmp:exec,size=2G
     environment:
       # Database Configuration (Lightsail Managed Database)
       - MYSQL_HOST=${DB_HOST}
