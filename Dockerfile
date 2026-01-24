@@ -52,6 +52,7 @@ RUN mkdir -p \
 ;
 
 COPY supervisord.conf /
+COPY cron.sh /
 
 ENV NEXTCLOUD_UPDATE=1
 

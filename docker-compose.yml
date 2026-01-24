@@ -16,7 +16,6 @@ services:
     volumes:
       - ${DATA_PATH}/nextcloud:/var/www/html
       - ${DATA_PATH}/data:/var/www/html/data
-      - ./cron.sh:/cron.sh:ro
     tmpfs:
       - /tmp:exec,size=2G
     environment:
