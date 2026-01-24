@@ -7,7 +7,8 @@ services:
       - nextcloud-net
 
   app:
-    image: nextcloud:apache
+    build: .
+    image: nextcloud-custom:latest
     container_name: nextcloud-app
     restart: unless-stopped
     ports:
@@ -15,7 +16,7 @@ services:
     volumes:
       - ${DATA_PATH}/nextcloud:/var/www/html
       - ${DATA_PATH}/data:/var/www/html/data
-      - ./hooks:/docker-entrypoint-hooks.d
+      - ./cron.sh:/cron.sh:ro
     tmpfs:
       - /tmp:exec,size=2G
     environment:
