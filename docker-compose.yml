@@ -1,4 +1,19 @@
 services:
+  db:
+    image: mariadb:10.11
+    container_name: nextcloud-db
+    restart: unless-stopped
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    volumes:
+      - ${DATA_PATH}/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    networks:
+      - nextcloud-net
+
   redis:
     image: redis:alpine
     container_name: nextcloud-redis
@@ -17,10 +32,10 @@ services:
       - ${DATA_PATH}/nextcloud:/var/www/html
       - ${DATA_PATH}/data:/var/www/html/data
     tmpfs:
-      - /tmp:exec,size=2G
+      - /tmp:exec,size=4G
     environment:
-      # Database Configuration (Lightsail Managed Database)
-      - MYSQL_HOST=${DB_HOST}
+      # Database Configuration (local MariaDB container)
+      - MYSQL_HOST=db
       - MYSQL_DATABASE=${DB_NAME}
       - MYSQL_USER=${DB_USER}
       - MYSQL_PASSWORD=${DB_PASSWORD}
@@ -36,17 +51,18 @@ services:
       - OVERWRITECLIURL=https://${DOMAIN}
       - APACHE_DISABLE_REWRITE_IP=1
 
-      # Performance tuning (optimized for 4GB RAM instance)
-      - PHP_MEMORY_LIMIT=2G
+      # Performance tuning (optimized for 8GB RAM / 2 vCPU instance)
+      - PHP_MEMORY_LIMIT=4G
       - PHP_UPLOAD_LIMIT=10G
       - APACHE_BODY_LIMIT=10737418240
 
       # Opcache settings for better PHP performance
       - PHP_OPCACHE_ENABLE=1
-      - PHP_OPCACHE_MEMORY_CONSUMPTION=256
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=512
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=10000
       - PHP_OPCACHE_REVALIDATE_FREQ=2
     depends_on:
+      - db
       - redis
     networks:
       - nextcloud-net
