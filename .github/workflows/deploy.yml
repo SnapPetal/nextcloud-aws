@@ -27,11 +27,11 @@ jobs:
             # Pull latest changes
             git pull origin main
 
-            # Pull latest Docker images
-            docker compose pull
+            # Pull latest Docker images (only standard images, not custom-built ones)
+            docker compose pull db redis
 
-            # Restart containers with new configuration
-            docker compose up -d
+            # Build and restart containers with new configuration
+            docker compose up -d --build
 
             # Clean up old images
             docker image prune -f
