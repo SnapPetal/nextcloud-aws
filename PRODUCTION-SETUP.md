@@ -96,11 +96,20 @@ See [docs/NGINX-SETUP.md](docs/NGINX-SETUP.md) for complete configuration.
 
 ## Installed Nextcloud Apps
 
-- ✅ Calendar (CalDAV sync)
-- ✅ Contacts (CardDAV sync)
-- ✅ Photos (timeline view)
-- ✅ Nextcloud Office (Collabora Online - document editing)
-- Additional apps can be enabled as needed
+- Calendar (CalDAV sync)
+- Contacts (CardDAV sync)
+- Photos (timeline view)
+- Recognize (AI face/object detection)
+- Nextcloud Office (Collabora Online - document editing)
+- Files External (S3 storage integration)
+
+## External Storage (S3)
+
+**Mount Point:** `/Cloud Storage`
+**Storage Type:** Amazon S3 (Lightsail bucket)
+**Region:** us-east-1
+
+Used for cloud backup and overflow storage. Files can be moved between local storage and S3 within the Nextcloud interface.
 
 ## Sync Clients
 
@@ -222,12 +231,12 @@ cd ~/nextcloud-aws
 
 ## Photo & Video Optimizations
 
-**Performance improvements for 157 GB photo collection:**
-- PHP memory increased to 2G
+**Performance improvements for large photo collections:**
+- PHP memory increased to 4G
 - Opcache enabled for faster page loads
 - Preview generation script available: `./scripts/generate-previews.sh`
-- Memories app recommended (better than default Photos)
-- Video transcoding support via Memories app
+- Recognize app for AI face/object detection
+- S3 external storage for cloud backup
 
 **See:** [docs/PHOTO-VIDEO-OPTIMIZATION.md](docs/PHOTO-VIDEO-OPTIMIZATION.md) for complete guide
 
@@ -246,5 +255,6 @@ cd ~/nextcloud-aws
 ---
 
 **Last updated:** January 27, 2026
-**Deployed by:** thonbecker
-**Status:** Production ✅
+**Instance:** 8 GB RAM, 2 vCPU
+**Storage:** 300 GB local + S3 external
+**Status:** Production

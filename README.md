@@ -330,15 +330,15 @@ Monthly AWS costs:
 - PHP memory: 4 GB
 - Opcache enabled (512 MB) for faster performance
 - Preview generation scripts included
-- Memories app recommended for best experience
-- AI-powered face recognition available
+- Recognize app for AI-powered face/object detection
+- S3 external storage for cloud backup
 
 **Features:**
-- 🚀 Fast photo browsing with automatic thumbnail generation
-- 🎭 Face recognition and people detection
-- 📹 Video transcoding and streaming
-- 🗺️ Map view with GPS data
-- 📱 Mobile app support
+- Fast photo browsing with automatic thumbnail generation
+- AI face recognition and object detection via Recognize app
+- Video preview support
+- S3 cloud storage integration
+- Mobile app support
 
 **See:** [docs/PHOTO-VIDEO-OPTIMIZATION.md](docs/PHOTO-VIDEO-OPTIMIZATION.md) for complete optimization guide
 

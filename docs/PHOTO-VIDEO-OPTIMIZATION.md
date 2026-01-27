@@ -1,39 +1,23 @@
 # Photo & Video Optimization Guide
 
-This guide covers optimizing Nextcloud for handling large photo and video collections on your 4 GB RAM / 2 vCPU instance.
+This guide covers optimizing Nextcloud for handling large photo and video collections on your 8 GB RAM / 2 vCPU instance.
 
 ## Current Optimizations
 
 ### Hardware
-- **Instance**: 4 GB RAM, 2 vCPU (upgraded from 2 GB)
-- **Storage**: 300 GB SSD
-- **Database**: External managed MySQL
+- **Instance**: 8 GB RAM, 2 vCPU
+- **Storage**: 300 GB SSD + S3 external storage
+- **Database**: Local MariaDB container
 
 ### Software Configuration
-- **PHP Memory**: 2 GB (increased from 512 MB)
+- **PHP Memory**: 4 GB
 - **Opcache**: Enabled for faster PHP execution
 - **Redis**: Caching enabled
 - **Upload Limit**: 10 GB for large video files
 
 ## Recommended Apps for Photos
 
-### 1. Memories App (Highly Recommended)
-**Install:** https://cloud.thonbecker.biz/settings/apps → Search "Memories"
-
-**Why Memories over default Photos:**
-- 🚀 Much faster performance with large libraries
-- 🎭 AI-powered face recognition
-- 📹 Video transcoding and streaming
-- 🗺️ Map view with GPS data
-- ⚡ Hardware acceleration support
-- 📱 Better mobile experience
-
-**After installation:**
-1. Go to https://cloud.thonbecker.biz/apps/memories
-2. It will automatically index your photos
-3. Enable face recognition in Settings if desired
-
-### 2. Preview Generator (Automatic Thumbnails)
+### 1. Preview Generator (Automatic Thumbnails)
 Pre-generates thumbnails for faster browsing. Automatically creates previews for new images.
 
 **One-time setup (installs app + configures automatic generation):**
@@ -70,7 +54,7 @@ crontab -e
 
 This ensures new photos automatically get thumbnails within 15 minutes of upload.
 
-### 3. Face Recognition (AI-Powered People Detection)
+### 2. Face Recognition via Recognize App
 Automatically detect and group faces in your photo collection using AI.
 
 **One-time setup (installs Recognize app + runs initial scan):**
@@ -96,20 +80,19 @@ This interactive script:
 
 **After setup - Using face recognition:**
 
-1. **View face clusters:**
-   - Go to https://cloud.thonbecker.biz/apps/memories
-   - Click the **"People"** tab (face icon)
+1. **View recognized faces:**
+   - Go to https://cloud.thonbecker.biz/apps/photos
+   - Browse by People/Faces
    - See all detected faces grouped by similarity
 
 2. **Name people:**
    - Click on a face cluster
-   - Click "Rename" or the edit icon
-   - Type the person's name
-   - All photos with that face are now tagged
+   - Assign a name to the person
+   - All photos with that face are tagged
 
 3. **Merge duplicate clusters:**
    - If same person appears in multiple clusters
-   - Select clusters and merge them
+   - Select and merge them
    - Improves accuracy over time
 
 **Automatic face recognition for NEW photos:**
@@ -134,11 +117,10 @@ docker compose logs -f app | grep -i recognize
 docker stats
 ```
 
-**Performance expectations (4 GB RAM / 2 vCPU instance):**
-- Initial scan: Several hours to overnight for 157 GB
+**Performance expectations (8 GB RAM / 2 vCPU instance):**
+- Initial scan: Several hours for large collections
 - Incremental scans: 5-15 minutes for new photos
 - Accuracy: Good (same as high-end servers)
-- Speed: Slower than powerful servers but totally usable
 - Face recognition improves as you name more faces
 
 ## Performance Tips
@@ -195,7 +177,7 @@ for file in *.mts; do ffmpeg -i "$file" -c:v libx264 -crf 23 -c:a aac "${file%.m
 
 **After conversion:**
 - Upload MP4 files to Nextcloud
-- They play instantly in Memories app
+- They play instantly in browser
 - Work perfectly on all devices
 
 ### 2. Configure Preview Sizes
@@ -297,15 +279,13 @@ docker compose exec -u www-data app php occ photos:update
 
 ### Slow Photo Loading
 1. Run preview generation: `./scripts/generate-previews.sh`
-2. Check if Memories app is installed (much faster)
-3. Verify Redis is working: `docker compose logs redis`
-4. Check available RAM: `free -h`
+2. Verify Redis is working: `docker compose logs redis`
+3. Check available RAM: `free -h`
 
 ### Videos Won't Play
-1. Install Memories app (has built-in transcoding)
-2. Check video format compatibility (MP4/H.264 works best)
-3. Enable transcoding in Memories settings
-4. Check PHP memory limit is sufficient (currently 2G)
+1. Check video format compatibility (MP4/H.264 works best)
+2. Convert non-compatible formats to MP4 before upload
+3. Check PHP memory limit is sufficient (currently 4G)
 
 ### Out of Memory Errors
 ```bash
@@ -319,31 +299,34 @@ docker stats
 
 ## Expected Performance
 
-With your 4 GB RAM / 2 vCPU setup:
+With your 8 GB RAM / 2 vCPU setup:
 
-- **Photo browsing**: Fast with Memories app + previews
-- **Video streaming**: Smooth with transcoding enabled
+- **Photo browsing**: Fast with generated previews
+- **Video playback**: Works well with MP4/H.264 format
 - **Upload speeds**: Limited by network, not server
-- **Face recognition**: Works, but slower than high-end servers
-- **Concurrent users**: 3-5 users browsing simultaneously
+- **Face recognition**: Good performance via Recognize app
+- **Concurrent users**: 5-10 users browsing simultaneously
 - **Large uploads**: 10 GB files supported
+
+## External Storage (S3)
+
+S3 external storage is configured for cloud backup:
+- Mount point: `/Cloud Storage`
+- Use for archiving older photos
+- Move files between local and S3 in Nextcloud UI
+- Keeps primary storage lean while backing up to cloud
 
 ## Future Upgrades
 
 If you need even better performance:
 
-1. **Upgrade to 8 GB RAM** ($40/month instance)
-   - Faster face recognition
-   - More concurrent users
-   - Better video transcoding
-
-2. **Add CDN** (CloudFront)
+1. **Add CDN** (CloudFront)
    - Faster photo delivery globally
    - Reduced server load
 
-3. **External Storage** (S3 for archives)
-   - Keep recent photos on SSD
-   - Archive old photos to cheaper S3 storage
+2. **Expand S3 storage**
+   - Lightsail buckets scale automatically
+   - Cost-effective for large archives
 
 ## Quick Commands Reference
 
@@ -378,16 +361,15 @@ docker stats
 
 ## Recommended Workflow
 
-1. ✅ Install Memories app
-2. ✅ Set up automatic preview generation: `./scripts/setup-auto-previews.sh`
-3. ✅ Upload photos via desktop client or MultCloud
-4. ✅ Run preview generation once uploaded: `./scripts/generate-previews.sh`
-5. ✅ Set up face recognition: `./scripts/setup-face-recognition.sh`
-6. ✅ Name faces in Memories People tab
-7. ✅ Set up cron jobs for automatic processing
-8. ✅ Enjoy fast photo browsing with AI-powered face recognition!
+1. Set up automatic preview generation: `./scripts/setup-auto-previews.sh`
+2. Upload photos via desktop client or MultCloud
+3. Run preview generation once uploaded: `./scripts/generate-previews.sh`
+4. Set up face recognition: `./scripts/setup-face-recognition.sh`
+5. Name faces in Photos app
+6. Set up cron jobs for automatic processing
+7. Use S3 Cloud Storage for backups and archives
 
 ---
 
-**Last updated:** January 19, 2026
-**Instance specs:** 4 GB RAM, 2 vCPU, 300 GB storage
+**Last updated:** January 27, 2026
+**Instance specs:** 8 GB RAM, 2 vCPU, 300 GB local storage + S3
