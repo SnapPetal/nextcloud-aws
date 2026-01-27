@@ -14,7 +14,7 @@ services:
     networks:
       - nextcloud-net
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
       interval: 30s
       timeout: 10s
       retries: 3
