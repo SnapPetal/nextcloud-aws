@@ -28,7 +28,7 @@ docker compose exec -u www-data app php occ background:cron
 # However, if you want to ensure cron runs from the host, add this to system crontab
 
 # Add cron job for Nextcloud background tasks
-CRON_CMD="cd /home/thonbecker/nextcloud-aws && docker compose exec -u www-data -T app php -f /var/www/html/cron.php >> /tmp/nextcloud-cron.log 2>&1"
+CRON_CMD="cd $HOME/nextcloud-aws && docker compose exec -u www-data -T app php -f /var/www/html/cron.php >> /tmp/nextcloud-cron.log 2>&1"
 CRON_LINE="*/5 * * * * $CRON_CMD"
 
 # Check if cron job already exists
@@ -41,7 +41,7 @@ else
 fi
 
 # Also add face recognition cron if Recognize app is installed
-RECOGNIZE_CMD="cd /home/thonbecker/nextcloud-aws && docker compose exec -u www-data -T app php occ recognize:classify >> /tmp/recognize.log 2>&1"
+RECOGNIZE_CMD="cd $HOME/nextcloud-aws && docker compose exec -u www-data -T app php occ recognize:classify >> /tmp/recognize.log 2>&1"
 RECOGNIZE_LINE="0 5 * * * $RECOGNIZE_CMD"
 
 if crontab -l 2>/dev/null | grep -q "recognize:classify"; then

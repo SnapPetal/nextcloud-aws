@@ -27,25 +27,9 @@ Your Nextcloud will be accessible at: **https://cloud.thonbecker.biz**
    - **Attach to instance**: `nextcloud-prod`
 4. Click **Create**
 
-### C. Create Managed Database
+### C. Database (Included)
 
-1. In Lightsail console, click **Databases** tab
-2. Click **Create database**
-3. Configure:
-   - **Database engine**: MySQL 8.0
-   - **Plan**: Standard ($15/month)
-   - **Name**: `nextcloud-prod-db`
-   - **Master username**: `dbadmin`
-   - **Master password**: Create a strong password (save it!)
-4. Click **Create database**
-5. Wait for database to be ready (5-10 minutes)
-6. Note the **Endpoint** (looks like: `ls-xxxxx.us-east-1.rds.amazonaws.com`)
-
-### D. Configure Database Access
-
-1. Go to your database → **Networking** tab
-2. Enable **Public mode** (needed for Lightsail instance to connect)
-3. Or add your instance's private IP to allowed connections
+The database is now included as a local MariaDB container in the docker-compose.yml - no external database setup needed!
 
 ## Step 2: Configure DNS
 
@@ -100,11 +84,12 @@ Update with your actual values:
 ```env
 DOMAIN=cloud.thonbecker.biz
 
-# From your Lightsail database
-DB_HOST=ls-xxxxxxxxxxxxx.us-east-1.rds.amazonaws.com
+# Database (local MariaDB container - just set passwords)
+DB_HOST=db
 DB_NAME=nextcloud
-DB_USER=dbadmin
-DB_PASSWORD=your_actual_database_password
+DB_USER=nextcloud
+DB_PASSWORD=your_secure_password
+MYSQL_ROOT_PASSWORD=your_secure_root_password
 
 DATA_PATH=/mnt/nextcloud-data
 ```
@@ -240,11 +225,11 @@ This provides a menu for:
 
 ## Cost Summary
 
-- Instance (2 GB): $10/month
-- Block Storage (100 GB): $10/month
-- Managed Database: $15/month
+- Instance (8 GB): $40/month
+- Block Storage (300 GB): $30/month
+- Database: Included (local MariaDB)
 - Static IP: Free
-- **Total: ~$35/month**
+- **Total: ~$70/month**
 
 ## Need Help?
 

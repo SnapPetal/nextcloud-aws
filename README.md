@@ -1,24 +1,22 @@
 # Nextcloud on AWS Lightsail with Docker
 
-Production-ready Nextcloud deployment on AWS Lightsail using Docker, with external managed database and Redis caching.
+Production-ready Nextcloud deployment on AWS Lightsail using Docker, with local MariaDB database and Redis caching.
 
 ## Architecture
 
 ```
-Internet → cloud.thonbecker.biz (HTTPS) → Lightsail Instance → Nextcloud + Redis
-                                                              ↓
-                                                    Lightsail Managed Database
+Internet → cloud.thonbecker.biz (HTTPS) → Lightsail Instance → Nextcloud + Redis + MariaDB
 ```
 
 ### Components
 - **Nextcloud App**: Official `nextcloud:apache` Docker image
 - **Redis Cache**: Lightweight caching for improved performance and file locking
-- **Database**: AWS Lightsail managed MySQL database
+- **Database**: Local MariaDB 10.11 container (no external database needed)
 - **Storage**: Separate Lightsail block storage volume (300 GB) for persistent data
 
 ## Features
 
-- Fully managed database with automated backups
+- Local MariaDB database for low latency
 - Redis caching for optimal performance
 - Automated GitHub Actions deployment
 - SSL/TLS via Let's Encrypt (Certbot)
@@ -39,9 +37,9 @@ Internet → cloud.thonbecker.biz (HTTPS) → Lightsail Instance → Nextcloud +
 ## Deployment Summary
 
 1. **Create Resources** (15 min)
-   - Lightsail instance: Ubuntu 22.04, $10/month
-   - Block storage: 100 GB, $10/month
-   - Managed database: MySQL, $15/month
+   - Lightsail instance: Ubuntu 22.04, 8 GB RAM ($40/month)
+   - Block storage: 300 GB ($30/month)
+   - Database: Included (local MariaDB container)
 
 2. **Configure DNS** (5 min)
    - Point `cloud.thonbecker.biz` to instance IP
@@ -56,7 +54,7 @@ Internet → cloud.thonbecker.biz (HTTPS) → Lightsail Instance → Nextcloud +
    - Certbot for Let's Encrypt certificate
 
 **Total time: ~40 minutes**
-**Total cost: ~$35/month**
+**Total cost: ~$70/month**
 
 ## Management Commands
 
@@ -219,11 +217,11 @@ sudo chown -R 33:33 /mnt/nextcloud-data/data
 ```
 
 ### Database connection failed
-- Verify database endpoint in `.env`
-- Check database public mode is enabled
-- Test connection:
+- Verify database container is running: `docker compose ps`
+- Check database logs: `docker compose logs db`
+- Test connection from app container:
   ```bash
-  mysql -h DB_HOST -u dbadmin -p
+  docker compose exec app mysql -h db -u nextcloud -p
   ```
 
 ### "Untrusted domain" error
@@ -318,19 +316,19 @@ Monthly AWS costs:
 
 | Resource | Specification | Cost |
 |----------|--------------|------|
-| Lightsail Instance | 4 GB RAM, 2 vCPU, Ubuntu 22.04 | $20 |
+| Lightsail Instance | 8 GB RAM, 2 vCPU, Ubuntu 22.04 | $40 |
 | Block Storage | 300 GB SSD | $30 |
-| Managed Database | MySQL 8.0 Standard | $15 |
+| Database | Local MariaDB (included) | $0 |
 | Static IP | IPv4 | Free |
 | SSL Certificate | Let's Encrypt | Free |
-| **Total** | | **$65/month** |
+| **Total** | | **$70/month** |
 
 ## Photo & Video Performance
 
 **Current setup optimized for large photo collections:**
-- 4 GB RAM / 2 vCPU instance
-- PHP memory: 2 GB
-- Opcache enabled for faster performance
+- 8 GB RAM / 2 vCPU instance
+- PHP memory: 4 GB
+- Opcache enabled (512 MB) for faster performance
 - Preview generation scripts included
 - Memories app recommended for best experience
 - AI-powered face recognition available
@@ -346,11 +344,11 @@ Monthly AWS costs:
 
 ## Scaling Options
 
-**Current instance:** 4 GB RAM, 2 vCPUs ($20/month)
+**Current instance:** 8 GB RAM, 2 vCPUs ($40/month)
 
 **Further scaling options:**
 
-1. **Upgrade to 8 GB RAM** ($40/month):
+1. **Upgrade to 16 GB RAM** ($80/month):
    - Better for heavy concurrent usage
    - Faster face recognition
    - Better video transcoding
@@ -359,10 +357,6 @@ Monthly AWS costs:
    - Current: 300 GB
    - Can expand to 512 GB (~$50/month) or more
    - See PRODUCTION-SETUP.md for resize procedure
-
-3. **Upgrade database** (minimal downtime):
-   - Go to database → Manage → Change plan
-   - Select larger plan if needed
 
 ## Project Structure
 

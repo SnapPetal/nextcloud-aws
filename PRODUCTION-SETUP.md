@@ -12,11 +12,11 @@ This file documents the actual production configuration of cloud.thonbecker.biz.
 
 | Resource | Name | Specs | Cost |
 |----------|------|-------|------|
-| Instance | nextcloud-prod | Ubuntu 22.04, 4 GB RAM, 2 vCPU | $20/month |
+| Instance | nextcloud-prod | Ubuntu 22.04, 8 GB RAM, 2 vCPU | $40/month |
 | Block Storage | nextcloud-prod-data-300gb | 300 GB SSD | $30/month |
-| Database | nextcloud-prod-db | MySQL 8.0 Standard | $15/month |
+| Database | Local MariaDB | Container (included) | $0 |
 | Static IP | nextcloud-prod-ip | IPv4 | Free |
-| **Total** | | | **$65/month** |
+| **Total** | | | **$70/month** |
 
 ### Storage Breakdown
 
@@ -70,25 +70,29 @@ See [docs/NGINX-SETUP.md](docs/NGINX-SETUP.md) for complete configuration.
 **Containers:**
 - `nextcloud-app`: Official nextcloud:apache image
 - `nextcloud-redis`: redis:alpine for caching
+- `nextcloud-db`: MariaDB 10.11 for database
 
 **Volumes:**
 - `/mnt/nextcloud-data/nextcloud` → `/var/www/html`
 - `/mnt/nextcloud-data/data` → `/var/www/html/data`
+- `/mnt/nextcloud-data/db` → `/var/lib/mysql`
 
 **Environment:**
-- Database: External Lightsail MySQL
+- Database: Local MariaDB container
 - Redis: Internal container
 - Domain: cloud.thonbecker.biz
 - Trusted proxies configured for Nginx
 
 ## Database Configuration
 
-**Engine:** MySQL 8.0
-**Host:** ls-02b194f7be6f5666fb48421a5c2c5da2e7a1fead.cmldxjsfqvn4.us-east-1.rds.amazonaws.com
+**Engine:** MariaDB 10.11 (local container)
+**Host:** db (Docker internal network)
 **Database:** nextcloud
-**User:** dbmasteruser
-**Connection:** TLS encrypted
-**Backups:** Automated daily snapshots by Lightsail
+**User:** nextcloud
+**Connection:** Docker internal network (no external exposure)
+**Backups:** Manual via docker compose exec or maintenance script
+
+**Note:** Migrated from external Lightsail managed database to local MariaDB container in January 2026 for cost savings and reduced latency.
 
 ## Installed Nextcloud Apps
 
@@ -144,10 +148,10 @@ cd ~/nextcloud-aws
 ## Performance Settings
 
 **PHP:**
-- Memory limit: 2G (optimized for 4 GB instance)
+- Memory limit: 4G (optimized for 8 GB instance)
 - Upload limit: 10G
 - Execution time: 3600s
-- Opcache: Enabled (256 MB)
+- Opcache: Enabled (512 MB)
 
 **Apache:**
 - Body limit: 10 GB
@@ -158,6 +162,9 @@ cd ~/nextcloud-aws
 
 **Redis:**
 - File locking and caching enabled
+
+**tmpfs:**
+- 4 GB for temporary files (improved performance)
 
 ## GitHub Actions
 
@@ -238,6 +245,6 @@ cd ~/nextcloud-aws
 
 ---
 
-**Last updated:** January 18, 2026
+**Last updated:** January 27, 2026
 **Deployed by:** thonbecker
 **Status:** Production ✅
