@@ -181,8 +181,12 @@ Or trigger manually:
 
 ### Disk Usage
 ```bash
+# User files (block storage)
 df -h /mnt/nextcloud-data
-du -sh /mnt/nextcloud-data/*
+
+# Application data (root filesystem)
+df -h /var/lib/nextcloud
+du -sh /var/lib/nextcloud/*
 ```
 
 ### Container Resources
@@ -213,8 +217,9 @@ docker compose up -d
 
 ### Permission issues
 ```bash
-sudo chown -R 33:33 /mnt/nextcloud-data/nextcloud
+sudo chown -R 33:33 /var/lib/nextcloud/app
 sudo chown -R 33:33 /mnt/nextcloud-data/data
+sudo chown -R 999:999 /var/lib/nextcloud/mysql
 ```
 
 ### Database connection failed

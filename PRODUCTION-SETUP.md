@@ -21,15 +21,16 @@ This file documents the actual production configuration of cloud.thonbecker.biz.
 
 ### Storage Breakdown
 
-**Total capacity:** 300 GB
-**Currently used:** ~36 GB
-**Available:** ~246 GB
+**Block Storage (300 GB) - User Files Only:**
+- Mount: `/mnt/nextcloud-data`
+- Contains: `/data` (user files)
+- Currently used: ~256 GB
+- Available: ~26 GB
 
-**Contents:**
-- Nextcloud application files (~12 GB)
-- User data migrated from Google Drive (~12 GB)
-- Database overhead
-- Photos ready to upload (157 GB planned)
+**Root Filesystem - Application Data:**
+- Location: `/var/lib/nextcloud/`
+- Contains: `app/` (Nextcloud application ~4.4 GB), `mysql/` (MariaDB ~1.2 GB)
+- Used: ~20 GB of 154 GB
 
 ### Disk Details
 
@@ -74,9 +75,9 @@ See [docs/NGINX-SETUP.md](docs/NGINX-SETUP.md) for complete configuration.
 - `nextcloud-db`: MariaDB 10.11 for database
 
 **Volumes:**
-- `/mnt/nextcloud-data/nextcloud` → `/var/www/html`
-- `/mnt/nextcloud-data/data` → `/var/www/html/data`
-- `/mnt/nextcloud-data/db` → `/var/lib/mysql`
+- `/var/lib/nextcloud/app` → `/var/www/html` (root filesystem)
+- `/mnt/nextcloud-data/data` → `/var/www/html/data` (block storage - user files only)
+- `/var/lib/nextcloud/mysql` → `/var/lib/mysql` (root filesystem)
 
 **Environment:**
 - Database: Local MariaDB container
@@ -243,9 +244,9 @@ cd ~/nextcloud-aws
 
 ## Future Considerations
 
-- Monitor storage usage as photo collection grows (currently 246 GB available)
-- Can expand to 512 GB disk if needed (~$50/month)
-- Consider 8 GB RAM upgrade if performance degrades with heavy usage
+- Monitor storage usage as photo collection grows (currently ~26 GB available on block storage)
+- Can expand block storage to 512 GB if needed (~$50/month)
+- Consider 16 GB RAM upgrade if performance degrades with heavy usage
 
 ## Support Resources
 

@@ -91,6 +91,7 @@ DB_USER=nextcloud
 DB_PASSWORD=your_secure_password
 MYSQL_ROOT_PASSWORD=your_secure_root_password
 
+# Block storage path (user files only - app/db are on root filesystem)
 DATA_PATH=/mnt/nextcloud-data
 ```
 
