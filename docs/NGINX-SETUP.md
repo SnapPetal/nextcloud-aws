@@ -85,6 +85,20 @@ server {
         return 301 $scheme://$host/remote.php/dav;
     }
 
+    # Webfinger and NodeInfo (required for Nextcloud federation)
+    location = /.well-known/webfinger {
+        return 301 $scheme://$host/index.php/.well-known/webfinger;
+    }
+
+    location = /.well-known/nodeinfo {
+        return 301 $scheme://$host/index.php/.well-known/nodeinfo;
+    }
+
+    # OCM provider (Open Cloud Mesh for federation)
+    location = /ocm-provider/ {
+        return 301 $scheme://$host/index.php/ocm-provider/;
+    }
+
     # Proxy to Nextcloud container
     location / {
         proxy_pass http://127.0.0.1:8080;
