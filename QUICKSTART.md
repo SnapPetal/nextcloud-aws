@@ -225,11 +225,12 @@ This provides a menu for:
 
 ## Cost Summary
 
-- Instance (8 GB): $40/month
+- Instance (8 GB): $44/month
 - Block Storage (300 GB): $30/month
+- S3 Storage: ~$0.023/GB/month (optional)
 - Database: Included (local MariaDB)
 - Static IP: Free
-- **Total: ~$70/month**
+- **Total: ~$74/month** (plus S3 if used)
 
 ## Need Help?
 

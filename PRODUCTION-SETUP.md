@@ -12,11 +12,12 @@ This file documents the actual production configuration of cloud.thonbecker.biz.
 
 | Resource | Name | Specs | Cost |
 |----------|------|-------|------|
-| Instance | nextcloud-prod | Ubuntu 22.04, 8 GB RAM, 2 vCPU | $40/month |
+| Instance | nextcloud-prod | Ubuntu 22.04, 8 GB RAM, 2 vCPU | $44/month |
 | Block Storage | nextcloud-prod-data-300gb | 300 GB SSD | $30/month |
+| S3 Storage | External storage | ~$0.023/GB/month | Variable |
 | Database | Local MariaDB | Container (included) | $0 |
 | Static IP | nextcloud-prod-ip | IPv4 | Free |
-| **Total** | | | **$70/month** |
+| **Total** | | | **$74/month + S3** |
 
 ### Storage Breakdown
 

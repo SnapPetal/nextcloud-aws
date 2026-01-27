@@ -37,8 +37,9 @@ Internet → cloud.thonbecker.biz (HTTPS) → Lightsail Instance → Nextcloud +
 ## Deployment Summary
 
 1. **Create Resources** (15 min)
-   - Lightsail instance: Ubuntu 22.04, 8 GB RAM ($40/month)
+   - Lightsail instance: Ubuntu 22.04, 8 GB RAM ($44/month)
    - Block storage: 300 GB ($30/month)
+   - S3 storage: ~$0.023/GB/month (optional, for external storage)
    - Database: Included (local MariaDB container)
 
 2. **Configure DNS** (5 min)
@@ -54,7 +55,7 @@ Internet → cloud.thonbecker.biz (HTTPS) → Lightsail Instance → Nextcloud +
    - Certbot for Let's Encrypt certificate
 
 **Total time: ~40 minutes**
-**Total cost: ~$70/month**
+**Total cost: ~$74/month** (plus S3 if used)
 
 ## Management Commands
 
@@ -316,12 +317,13 @@ Monthly AWS costs:
 
 | Resource | Specification | Cost |
 |----------|--------------|------|
-| Lightsail Instance | 8 GB RAM, 2 vCPU, Ubuntu 22.04 | $40 |
+| Lightsail Instance | 8 GB RAM, 2 vCPU, Ubuntu 22.04 | $44 |
 | Block Storage | 300 GB SSD | $30 |
+| S3 Storage | ~$0.023/GB/month (optional) | Variable |
 | Database | Local MariaDB (included) | $0 |
 | Static IP | IPv4 | Free |
 | SSL Certificate | Let's Encrypt | Free |
-| **Total** | | **$70/month** |
+| **Total** | | **$74/month + S3** |
 
 ## Photo & Video Performance
 
@@ -344,7 +346,7 @@ Monthly AWS costs:
 
 ## Scaling Options
 
-**Current instance:** 8 GB RAM, 2 vCPUs ($40/month)
+**Current instance:** 8 GB RAM, 2 vCPUs ($44/month)
 
 **Further scaling options:**
 
