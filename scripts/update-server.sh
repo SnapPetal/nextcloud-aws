@@ -16,10 +16,12 @@ git pull origin main
 echo "✅ Code updated"
 
 echo ""
-echo "Step 2: Restarting containers..."
+echo "Step 2: Pulling latest images and rebuilding..."
 echo "-----------------------------------"
 docker compose down
+docker compose build --pull --no-cache
 docker compose up -d
+docker image prune -f
 
 echo ""
 echo "Step 3: Waiting for Nextcloud to be ready..."
