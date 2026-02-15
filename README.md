@@ -6,12 +6,16 @@ Production-ready Nextcloud deployment on AWS Lightsail using Docker, with local 
 
 ```
 Internet → cloud.thonbecker.biz (HTTPS) → Lightsail Instance → Nextcloud + Redis + MariaDB
+                                                              → ClamAV (antivirus scanning)
+                                                              → Uptime Kuma (monitoring)
 ```
 
 ### Components
 - **Nextcloud App**: Official `nextcloud:apache` Docker image
 - **Redis Cache**: Lightweight caching for improved performance and file locking
 - **Database**: Local MariaDB 10.11 container (no external database needed)
+- **ClamAV**: Antivirus scanning for uploaded files
+- **Uptime Kuma**: Self-hosted uptime monitoring with status page
 - **Storage**: Separate Lightsail block storage volume (300 GB) for persistent data
 
 ## Features
@@ -21,6 +25,9 @@ Internet → cloud.thonbecker.biz (HTTPS) → Lightsail Instance → Nextcloud +
 - Automated GitHub Actions deployment
 - SSL/TLS via Let's Encrypt (Certbot)
 - Persistent storage on separate volume
+- ClamAV antivirus scanning for uploaded files
+- Uptime Kuma monitoring with public status page
+- Automated daily S3 database backups with 3-backup retention
 - Health checks and monitoring
 - Interactive maintenance scripts
 
@@ -107,45 +114,28 @@ docker compose exec -u www-data app php occ files:scan --all
 
 ## Backups
 
-### Automated Backups with Cron
+### Automated S3 Backups
 
-Create backup script:
+Database backups run daily via cron, syncing to S3 with 3-backup local retention.
 
+**Setup** (one-time):
 ```bash
-nano ~/backup-nextcloud.sh
+./scripts/setup-s3-backup.sh
 ```
 
-Add:
+This installs the AWS CLI, configures your S3 bucket in `.env`, and adds a daily cron job.
 
+**Manual backup**:
 ```bash
-#!/bin/bash
-DATE=$(date +%Y%m%d)
-BACKUP_DIR="/mnt/nextcloud-data/backups"
-mkdir -p $BACKUP_DIR
-
-# Backup database
-mysqldump -h YOUR_DB_HOST -u dbadmin -pYOUR_PASSWORD nextcloud > $BACKUP_DIR/db-$DATE.sql
-
-# Backup files (optional - can be large)
-tar -czf $BACKUP_DIR/files-$DATE.tar.gz -C /mnt/nextcloud-data --exclude='backups' nextcloud data
-
-# Keep only last 30 days
-find $BACKUP_DIR -name "*.sql" -mtime +30 -delete
-find $BACKUP_DIR -name "*.tar.gz" -mtime +30 -delete
+./scripts/backup-to-s3.sh
 ```
 
-Make executable and add to cron:
+**How it works** (`scripts/backup-to-s3.sh`):
+1. Dumps MariaDB via `docker compose exec` and compresses with gzip
+2. Retains only the last 3 backups locally
+3. Syncs backup files to `s3://$S3_BUCKET/backups/`
 
-```bash
-chmod +x ~/backup-nextcloud.sh
-crontab -e
-```
-
-Add line:
-
-```
-0 2 * * * /home/ubuntu/backup-nextcloud.sh
-```
+Backups are stored at `/mnt/nextcloud-data/backups/` and logged to `backup.log` in the same directory.
 
 ## GitHub Actions Automated Deployment
 
@@ -193,6 +183,17 @@ du -sh /var/lib/nextcloud/*
 ```bash
 docker stats
 ```
+
+### Uptime Kuma
+
+Self-hosted uptime monitoring for Nextcloud services. Runs on port 3001 (localhost-only by default, exposed externally via Nginx).
+
+**Setup**:
+```bash
+./scripts/setup-kuma.sh
+```
+
+**Status page**: https://status.thonbecker.biz
 
 ### Logs
 ```bash
@@ -262,6 +263,7 @@ sudo certbot renew --force-renewal
    - SSH (22): Your IP only
    - HTTP (80): All (for Let's Encrypt challenges)
    - HTTPS (443): All
+   - Port 3001: Localhost only (Uptime Kuma, exposed externally via Nginx on HTTPS)
 
 4. **Strong passwords**:
    - Database password (20+ characters)
@@ -380,7 +382,17 @@ nextcloud-aws/
 │   ├── maintenance.sh                # Interactive maintenance menu
 │   ├── generate-previews.sh          # Photo preview generation
 │   ├── setup-auto-previews.sh        # Configure automatic thumbnails
-│   └── setup-face-recognition.sh     # Configure AI face recognition
+│   ├── setup-face-recognition.sh     # Configure AI face recognition
+│   ├── backup-to-s3.sh              # Automated database backup to S3
+│   ├── setup-s3-backup.sh           # One-time S3 backup setup
+│   ├── setup-clamav.sh              # ClamAV antivirus setup
+│   ├── setup-kuma.sh                # Uptime Kuma monitoring setup
+│   ├── update-server.sh             # Server update script
+│   ├── safe-reboot.sh               # Safe reboot with service checks
+│   ├── ensure-autostart.sh          # Ensure containers start on boot
+│   ├── setup-notify-push.sh         # Client push notifications setup
+│   ├── setup-cron.sh                # Nextcloud cron job setup
+│   └── fix-admin-warnings.sh        # Fix Nextcloud admin warnings
 ├── docker-compose.yml                # Docker Compose configuration
 ├── .env.example                      # Environment variables template
 ├── PRODUCTION-SETUP.md               # Production infrastructure docs
