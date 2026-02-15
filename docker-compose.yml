@@ -103,6 +103,7 @@ services:
       - "127.0.0.1:3001:3001"
     volumes:
       - kuma-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - nextcloud-net
     healthcheck:
