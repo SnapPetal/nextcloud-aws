@@ -48,6 +48,11 @@ PG_USER="${PG_USER:-ente}"
 read -rp "Ente Postgres database [ente_db]: " PG_DB
 PG_DB="${PG_DB:-ente_db}"
 
+# Prompt for SMTP configuration
+read -rp "SMTP email (Gmail address): " SMTP_USERNAME
+read -rsp "SMTP app password: " SMTP_PASSWORD
+echo ""
+
 echo ""
 echo "Updating .env..."
 
@@ -87,6 +92,8 @@ sed -e "s|ENTE_DB_USER_PLACEHOLDER|$PG_USER|g" \
     -e "s|ENTE_JWT_SECRET_PLACEHOLDER|$JWT_SECRET|g" \
     -e "s|ENTE_KEY_ENCRYPTION_PLACEHOLDER|$KEY_ENCRYPTION|g" \
     -e "s|ENTE_KEY_HASH_PLACEHOLDER|$KEY_HASH|g" \
+    -e "s|ENTE_SMTP_USERNAME_PLACEHOLDER|$SMTP_USERNAME|g" \
+    -e "s|ENTE_SMTP_PASSWORD_PLACEHOLDER|$SMTP_PASSWORD|g" \
     "$MUSEUM_TEMPLATE" > "$PROJECT_DIR/ente/museum.yaml.tmp"
 
 mv "$PROJECT_DIR/ente/museum.yaml.tmp" "$MUSEUM_TEMPLATE"

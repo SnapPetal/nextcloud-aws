@@ -36,3 +36,10 @@ key:
 
 apps:
   photos: https://photos.thonbecker.biz
+
+smtp:
+  host: smtp.gmail.com
+  port: 587
+  username: ENTE_SMTP_USERNAME_PLACEHOLDER
+  password: ENTE_SMTP_PASSWORD_PLACEHOLDER
+  email: ENTE_SMTP_USERNAME_PLACEHOLDER
