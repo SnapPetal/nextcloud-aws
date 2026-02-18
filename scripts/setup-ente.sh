@@ -28,8 +28,8 @@ fi
 # Generate random secrets
 echo "Generating secrets..."
 JWT_SECRET=$(openssl rand -hex 32)
-KEY_ENCRYPTION=$(openssl rand -hex 32)
-KEY_HASH=$(openssl rand -hex 32)
+KEY_ENCRYPTION=$(openssl rand 32 | base64 | tr -d '\n')
+KEY_HASH=$(openssl rand 32 | base64 | tr -d '\n')
 ENTE_DB_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=')
 
 echo ""
