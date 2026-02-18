@@ -72,6 +72,16 @@ PHP is tuned for 8 GB RAM: `PHP_MEMORY_LIMIT=4G`, `PHP_UPLOAD_LIMIT=10G`, Opcach
 
 Dependabot checks weekly for GitHub Actions and Docker base image updates.
 
+## SSH Access
+
+```bash
+# SSH into Lightsail instance
+ssh -i ~/.ssh/lightsail.pem ubuntu@18.213.161.133
+
+# AWS CLI with credentials
+aws-vault exec thonbecker -- <command>
+```
+
 ## Conventions
 
 - Uses `docker compose` v2 plugin syntax (no hyphen), not legacy `docker-compose`
