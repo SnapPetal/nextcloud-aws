@@ -111,46 +111,21 @@ fi
 echo ""
 echo "=== Nginx Configuration ==="
 echo ""
-echo "Add the following Nginx server blocks and run certbot for SSL:"
-echo ""
-cat << 'NGINX'
-# /etc/nginx/sites-available/photos.thonbecker.biz
-server {
-    listen 80;
-    server_name photos.thonbecker.biz;
 
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
+NGINX_DIR="$PROJECT_DIR/nginx"
 
-# /etc/nginx/sites-available/api.photos.thonbecker.biz
-server {
-    listen 80;
-    server_name api.photos.thonbecker.biz;
+echo "Symlinking Nginx configs..."
+sudo ln -sf "$NGINX_DIR/photos.thonbecker.biz" /etc/nginx/sites-enabled/photos.thonbecker.biz
+sudo ln -sf "$NGINX_DIR/api.photos.thonbecker.biz" /etc/nginx/sites-enabled/api.photos.thonbecker.biz
 
-    client_max_body_size 10G;
+echo "Testing Nginx configuration..."
+sudo nginx -t
 
-    location / {
-        proxy_pass http://127.0.0.1:8082;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_buffering off;
-    }
-}
-NGINX
+echo "Reloading Nginx..."
+sudo systemctl reload nginx
 
 echo ""
-echo "Then run:"
-echo "  sudo ln -s /etc/nginx/sites-available/photos.thonbecker.biz /etc/nginx/sites-enabled/"
-echo "  sudo ln -s /etc/nginx/sites-available/api.photos.thonbecker.biz /etc/nginx/sites-enabled/"
-echo "  sudo nginx -t && sudo systemctl reload nginx"
+echo "Run certbot to enable SSL:"
 echo "  sudo certbot --nginx -d photos.thonbecker.biz -d api.photos.thonbecker.biz"
 echo ""
 
