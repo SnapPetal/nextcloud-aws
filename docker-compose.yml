@@ -112,6 +112,56 @@ services:
       timeout: 10s
       retries: 3
 
+  ente-postgres:
+    image: postgres:15
+    container_name: ente-postgres
+    restart: unless-stopped
+    volumes:
+      - ente-postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${ENTE_POSTGRES_USER}
+      - POSTGRES_PASSWORD=${ENTE_POSTGRES_PASSWORD}
+      - POSTGRES_DB=${ENTE_POSTGRES_DB}
+    networks:
+      - nextcloud-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ENTE_POSTGRES_USER} -d ${ENTE_POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  ente-museum:
+    image: ghcr.io/ente-io/server
+    container_name: ente-museum
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8082:8080"
+    volumes:
+      - ./ente/museum.yaml:/museum.yaml:ro
+    depends_on:
+      ente-postgres:
+        condition: service_healthy
+    networks:
+      - nextcloud-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  ente-web:
+    image: ghcr.io/ente-io/web
+    container_name: ente-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - ENTE_API_ORIGIN=https://api.photos.thonbecker.biz
+    networks:
+      - nextcloud-net
+
 networks:
   nextcloud-net:
     driver: bridge
@@ -119,3 +169,4 @@ networks:
 volumes:
   clamav-data:
   kuma-data:
+  ente-postgres-data:

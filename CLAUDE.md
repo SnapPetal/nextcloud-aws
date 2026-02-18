@@ -11,15 +11,26 @@ Infrastructure-as-configuration repository for a self-hosted Nextcloud instance 
 ## Architecture
 
 ```
-Internet (HTTPS 443) → Nginx (host, SSL via Certbot) → 127.0.0.1:8080 → Docker bridge (nextcloud-net)
+Internet (HTTPS 443) → Nginx (host, SSL via Certbot) → Docker bridge (nextcloud-net)
+  cloud.thonbecker.biz        → 127.0.0.1:8080 (Nextcloud)
+  photos.thonbecker.biz       → 127.0.0.1:3000 (Ente Web)
+  api.photos.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
+  status.thonbecker.biz       → 127.0.0.1:3001 (Uptime Kuma)
 ```
 
-Five containers in docker-compose.yml:
+Eight containers in docker-compose.yml:
+
+**Nextcloud:**
 - **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor), binds 127.0.0.1:8080
 - **nextcloud-db** — MariaDB 10.11, data at /var/lib/nextcloud/mysql
 - **nextcloud-redis** — Redis Alpine, caching + file locking
 - **nextcloud-clamav** — ClamAV antivirus daemon on port 3310
 - **nextcloud-kuma** — Uptime Kuma monitoring, binds 127.0.0.1:3001 (proxied at status.thonbecker.biz)
+
+**Ente Photos:**
+- **ente-museum** — Ente API server, binds 127.0.0.1:8082 (proxied at api.photos.thonbecker.biz)
+- **ente-postgres** — PostgreSQL 15 for Ente metadata
+- **ente-web** — Ente Photos web app, binds 127.0.0.1:3000 (proxied at photos.thonbecker.biz)
 
 **Storage split:** Root filesystem holds app files (`/var/lib/nextcloud/app`) and DB (`/var/lib/nextcloud/mysql`). A 300 GB Lightsail block storage volume at `/mnt/nextcloud-data` holds user data and backups.
 
@@ -44,17 +55,20 @@ docker compose exec -u www-data app php occ maintenance:mode --off
 
 # Database backup to S3
 ./scripts/backup-to-s3.sh
+
+# Ente Photos setup (one-time)
+./scripts/setup-ente.sh
 ```
 
 ## Configuration
 
-`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET.
+`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET, and ENTE_* variables for Ente Photos (Postgres, S3).
 
 PHP is tuned for 8 GB RAM: `PHP_MEMORY_LIMIT=4G`, `PHP_UPLOAD_LIMIT=10G`, Opcache 512 MB. MariaDB runs with `--transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW` as Nextcloud requires.
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, rebuilds app image, restarts stack, verifies 5 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
+`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, rebuilds app image, restarts stack, verifies 8 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
 Dependabot checks weekly for GitHub Actions and Docker base image updates.
 

@@ -1,0 +1,38 @@
+db:
+  host: ente-postgres
+  port: 5432
+  name: ente_db
+  user: ENTE_DB_USER_PLACEHOLDER
+  password: ENTE_DB_PASSWORD_PLACEHOLDER
+
+s3:
+  are_local_buckets: false
+  use_path_style_urls: false
+  b2-eu-cen:
+    key: ENTE_S3_ACCESS_KEY_PLACEHOLDER
+    secret: ENTE_S3_SECRET_KEY_PLACEHOLDER
+    endpoint: s3.ENTE_S3_REGION_PLACEHOLDER.amazonaws.com
+    region: ENTE_S3_REGION_PLACEHOLDER
+    bucket: ENTE_S3_BUCKET_PLACEHOLDER
+  wasabi-eu-central-2-v3:
+    key: ENTE_S3_ACCESS_KEY_PLACEHOLDER
+    secret: ENTE_S3_SECRET_KEY_PLACEHOLDER
+    endpoint: s3.ENTE_S3_REGION_PLACEHOLDER.amazonaws.com
+    region: ENTE_S3_REGION_PLACEHOLDER
+    bucket: ENTE_S3_BUCKET_PLACEHOLDER
+  scw-eu-fr-v3:
+    key: ENTE_S3_ACCESS_KEY_PLACEHOLDER
+    secret: ENTE_S3_SECRET_KEY_PLACEHOLDER
+    endpoint: s3.ENTE_S3_REGION_PLACEHOLDER.amazonaws.com
+    region: ENTE_S3_REGION_PLACEHOLDER
+    bucket: ENTE_S3_BUCKET_PLACEHOLDER
+
+jwt:
+  secret: ENTE_JWT_SECRET_PLACEHOLDER
+
+key:
+  encryption: ENTE_KEY_ENCRYPTION_PLACEHOLDER
+  hash: ENTE_KEY_HASH_PLACEHOLDER
+
+apps:
+  photos: https://photos.thonbecker.biz
