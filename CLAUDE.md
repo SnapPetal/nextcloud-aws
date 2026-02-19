@@ -53,8 +53,15 @@ docker compose exec -u www-data app php occ maintenance:mode --off
 # Update (pull latest images + rebuild app)
 ./scripts/update-server.sh
 
-# Database backup to S3
+# Database backup to S3 (MariaDB + PostgreSQL)
 ./scripts/backup-to-s3.sh
+
+# Reload nginx after config changes
+sudo systemctl reload nginx
+
+# SSL certificate renewal (automatic via certbot.timer, twice daily)
+sudo certbot renew --dry-run   # test
+sudo certbot renew             # force manual renewal
 
 # Ente Photos setup (one-time)
 ./scripts/setup-ente.sh
@@ -62,13 +69,32 @@ docker compose exec -u www-data app php occ maintenance:mode --off
 
 ## Configuration
 
-`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET, and ENTE_* variables for Ente Photos (Postgres, S3).
+`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET, S3_DB_BACKUP_BUCKET, and ENTE_* variables for Ente Photos (Postgres, S3, JWT, SMTP).
 
 PHP is tuned for 8 GB RAM: `PHP_MEMORY_LIMIT=4G`, `PHP_UPLOAD_LIMIT=10G`, Opcache 512 MB. MariaDB runs with `--transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW` as Nextcloud requires.
 
+## Nginx
+
+All four virtual host configs live in `nginx/` and are symlinked into `/etc/nginx/sites-enabled/`. SSL is managed by Certbot (`authenticator = nginx` for all domains). Do not edit configs in `/etc/nginx/sites-available/` — edit the repo copies in `nginx/` instead.
+
+```
+nginx/nextcloud               → cloud.thonbecker.biz
+nginx/kuma                    → status.thonbecker.biz
+nginx/photos.thonbecker.biz   → photos.thonbecker.biz
+nginx/api.photos.thonbecker.biz → api.photos.thonbecker.biz
+```
+
+## Backups
+
+`scripts/backup-to-s3.sh` runs nightly at 02:00 via cron. Backs up both databases and uploads to S3:
+- MariaDB → `s3://${S3_DB_BACKUP_BUCKET}/mariadb/`
+- PostgreSQL (Ente) → `s3://${S3_DB_BACKUP_BUCKET}/postgres/`
+
+Keeps last 3 local copies in `/mnt/nextcloud-data/backups/`. Cron log at `/mnt/nextcloud-data/backups/cron.log`.
+
 ## CI/CD
 
-`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, rebuilds app image, restarts stack, verifies 8 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
+`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, reloads nginx, then verifies all 8 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
 Dependabot checks weekly for GitHub Actions and Docker base image updates.
 
@@ -87,6 +113,7 @@ aws-vault exec thonbecker -- <command>
 - Uses `docker compose` v2 plugin syntax (no hyphen), not legacy `docker-compose`
 - All scripts assume they run from `~/nextcloud-aws` on the server
 - The app container is always rebuilt (not just pulled) on deploy to get the latest nextcloud:apache base
-- `supervisord.conf` runs both apache2 and cron inside the app container
+- `supervisord.conf` runs both apache2 and cron inside the app container (runs as root explicitly to suppress supervisord warning)
 - Nginx runs on the host (not containerized) handling SSL termination and reverse proxy
 - Trusted proxies configured for RFC-1918 ranges to handle Nginx forwarding
+- All nginx virtual host configs are version-controlled in `nginx/` — symlinked from `/etc/nginx/sites-enabled/`
