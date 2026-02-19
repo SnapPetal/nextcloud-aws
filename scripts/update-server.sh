@@ -21,6 +21,7 @@ echo "-----------------------------------"
 docker compose down
 docker compose build --pull --no-cache
 docker compose up -d
+sudo systemctl reload nginx
 docker image prune -f
 
 echo ""
@@ -44,16 +45,6 @@ echo "=========================================="
 echo "✅ Server Updated Successfully!"
 echo "=========================================="
 echo ""
-echo "Your Nextcloud is now running with:"
-echo "  - Official nextcloud:apache image (simplified)"
-echo "  - No ffmpeg complexity"
-echo "  - Ready for MP4 videos"
-echo ""
 echo "Access your Nextcloud:"
 echo "  https://cloud.thonbecker.biz"
-echo ""
-echo "For MTS videos:"
-echo "  - Convert to MP4 using HandBrake: https://handbrake.fr/"
-echo "  - Then upload the MP4 files"
-echo "  - They'll play instantly!"
 echo ""
