@@ -1,11 +1,17 @@
 #!/bin/bash
 
-# One-time setup for automated S3 backups
-# Installs AWS CLI, configures S3 bucket, and adds cron job
+# One-time setup for automated S3 database backups.
+#
+# The backup bucket and IAM user are managed by CDK (HomeWeb db-backup-stack).
+# This script configures AWS credentials on the server and wires up the cron job.
+#
+# Before running, retrieve the secret key from Secrets Manager:
+#   aws-vault exec thonbecker -- aws secretsmanager get-secret-value \
+#     --secret-id nextcloud-db-backup-user-secret-key \
+#     --query SecretString --output text
 
 set -e
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -15,7 +21,7 @@ NC='\033[0m'
 cd ~/nextcloud-aws || exit 1
 
 echo -e "${BLUE}=========================================${NC}"
-echo -e "${BLUE}   S3 Backup Setup${NC}"
+echo -e "${BLUE}   S3 Database Backup Setup${NC}"
 echo -e "${BLUE}=========================================${NC}"
 echo ""
 
@@ -28,51 +34,67 @@ else
     echo -e "${GREEN}AWS CLI already installed ($(aws --version))${NC}"
 fi
 
-# Configure AWS credentials if not already set
-if ! aws sts get-caller-identity &> /dev/null 2>&1; then
-    echo ""
-    echo -e "${YELLOW}AWS credentials not configured. Running 'aws configure'...${NC}"
-    echo -e "${BLUE}You'll need your AWS Access Key ID, Secret Access Key, and region.${NC}"
-    aws configure
-fi
+# CDK-managed resources
+DB_BACKUP_BUCKET="nextcloud-db-backups-thonbecker"
+EXPECTED_KEY_ID="AKIAZVRVZ6IX6NOI2C3K"
 
-# Prompt for S3 bucket name
 echo ""
-read -p "Enter S3 bucket name for backups: " S3_BUCKET
+echo "Bucket (CDK-managed): s3://${DB_BACKUP_BUCKET}"
+echo "IAM user:             nextcloud-db-backup-user"
+echo ""
+echo -e "${YELLOW}Retrieve the secret key with:${NC}"
+echo "  aws-vault exec thonbecker -- aws secretsmanager get-secret-value \\"
+echo "    --secret-id nextcloud-db-backup-user-secret-key \\"
+echo "    --query SecretString --output text"
+echo ""
 
-if [ -z "$S3_BUCKET" ]; then
-    echo -e "${RED}Bucket name cannot be empty!${NC}"
+read -rp "AWS Access Key ID [${EXPECTED_KEY_ID}]: " ACCESS_KEY_ID
+ACCESS_KEY_ID="${ACCESS_KEY_ID:-${EXPECTED_KEY_ID}}"
+
+read -rsp "AWS Secret Access Key: " SECRET_ACCESS_KEY
+echo ""
+
+if [ -z "$SECRET_ACCESS_KEY" ]; then
+    echo -e "${RED}Secret access key cannot be empty!${NC}"
     exit 1
 fi
+
+# Configure default AWS credentials for the backup service account
+aws configure set aws_access_key_id "$ACCESS_KEY_ID"
+aws configure set aws_secret_access_key "$SECRET_ACCESS_KEY"
+aws configure set region us-east-1
+aws configure set output json
+
+echo -e "${GREEN}AWS credentials configured.${NC}"
 
 # Verify bucket access
-echo -e "${YELLOW}Verifying access to s3://${S3_BUCKET}...${NC}"
-if aws s3 ls "s3://${S3_BUCKET}" &> /dev/null; then
-    echo -e "${GREEN}Bucket access verified${NC}"
+echo -e "${YELLOW}Verifying access to s3://${DB_BACKUP_BUCKET}...${NC}"
+if aws s3 ls "s3://${DB_BACKUP_BUCKET}" &> /dev/null; then
+    echo -e "${GREEN}Bucket access verified.${NC}"
 else
-    echo -e "${RED}Cannot access bucket '${S3_BUCKET}'. Make sure it exists and you have permission.${NC}"
+    echo -e "${RED}Cannot access s3://${DB_BACKUP_BUCKET}. Check credentials and IAM permissions.${NC}"
     exit 1
 fi
 
-# Add S3_BUCKET to .env if not already present
-if grep -q "^S3_BUCKET=" .env 2>/dev/null; then
-    sed -i "s|^S3_BUCKET=.*|S3_BUCKET=${S3_BUCKET}|" .env
-    echo -e "${GREEN}Updated S3_BUCKET in .env${NC}"
+# Set S3_DB_BACKUP_BUCKET in .env
+if grep -q "^S3_DB_BACKUP_BUCKET=" .env 2>/dev/null; then
+    sed -i "s|^S3_DB_BACKUP_BUCKET=.*|S3_DB_BACKUP_BUCKET=${DB_BACKUP_BUCKET}|" .env
+    echo -e "${GREEN}Updated S3_DB_BACKUP_BUCKET in .env${NC}"
+elif grep -q "^S3_BUCKET=" .env 2>/dev/null; then
+    sed -i "/^S3_BUCKET=/a S3_DB_BACKUP_BUCKET=${DB_BACKUP_BUCKET}" .env
+    echo -e "${GREEN}Added S3_DB_BACKUP_BUCKET to .env${NC}"
 else
     echo "" >> .env
-    echo "# S3 Backup Configuration" >> .env
-    echo "S3_BUCKET=${S3_BUCKET}" >> .env
-    echo -e "${GREEN}Added S3_BUCKET to .env${NC}"
+    echo "S3_DB_BACKUP_BUCKET=${DB_BACKUP_BUCKET}" >> .env
+    echo -e "${GREEN}Added S3_DB_BACKUP_BUCKET to .env${NC}"
 fi
 
 # Set up cron job for daily backups at 2 AM
-CRON_CMD="0 2 * * * ${HOME}/nextcloud-aws/scripts/backup-to-s3.sh >> /mnt/nextcloud-data/backups/cron.log 2>&1"
 SCRIPT_PATH="${HOME}/nextcloud-aws/scripts/backup-to-s3.sh"
+CRON_CMD="0 2 * * * ${SCRIPT_PATH} >> /mnt/nextcloud-data/backups/cron.log 2>&1"
 
-# Make backup script executable
 chmod +x "$SCRIPT_PATH"
 
-# Add cron job if not already present
 if crontab -l 2>/dev/null | grep -qF "backup-to-s3.sh"; then
     echo -e "${YELLOW}Cron job already exists, updating...${NC}"
     (crontab -l 2>/dev/null | grep -vF "backup-to-s3.sh"; echo "$CRON_CMD") | crontab -
@@ -89,9 +111,12 @@ echo -e "${GREEN}=========================================${NC}"
 echo ""
 echo "Backups will:"
 echo "  - Run daily at 2:00 AM"
-echo "  - Save to /mnt/nextcloud-data/backups/"
-echo "  - Keep only the last 3 local backups"
-echo "  - Sync to s3://${S3_BUCKET}/backups/"
+echo "  - Save locally to /mnt/nextcloud-data/backups/"
+echo "  - Keep the last 3 local copies per database"
+echo "  - Upload to:"
+echo "      s3://${DB_BACKUP_BUCKET}/mariadb/   (Nextcloud MariaDB)"
+echo "      s3://${DB_BACKUP_BUCKET}/postgres/  (Ente PostgreSQL)"
+echo "  - S3 objects expire automatically after 7 days (CDK lifecycle rule)"
 echo ""
 echo "To run a backup manually:"
 echo "  ./scripts/backup-to-s3.sh"
