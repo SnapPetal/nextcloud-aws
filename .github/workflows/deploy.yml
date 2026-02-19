@@ -30,6 +30,9 @@ jobs:
             # Pull latest Docker images (only standard images, not custom-built ones)
             docker compose pull db redis clamav kuma ente-postgres ente-museum ente-web
 
+            # Generate museum.yaml from template + .env secrets
+            ./scripts/generate-museum-yaml.sh
+
             # Build and restart containers (--pull always ensures base images are fresh)
             docker compose build --pull app
             docker compose up -d

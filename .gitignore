@@ -1,6 +1,9 @@
 # Environment files
 .env
 
+# Generated config with secrets
+ente/museum.yaml
+
 # Backup files
 *.sql
 *.tar.gz
