@@ -37,6 +37,9 @@ jobs:
             docker compose build --pull app
             docker compose up -d
 
+            # Reload nginx to pick up any config changes
+            sudo systemctl reload nginx
+
             # Clean up old images
             docker image prune -f
 
