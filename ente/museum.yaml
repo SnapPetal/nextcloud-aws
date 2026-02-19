@@ -43,3 +43,8 @@ smtp:
   username: ENTE_SMTP_USERNAME_PLACEHOLDER
   password: ENTE_SMTP_PASSWORD_PLACEHOLDER
   email: ENTE_SMTP_USERNAME_PLACEHOLDER
+
+internal:
+  disable-registration: true
+  admins:
+    - 1580559962386438
