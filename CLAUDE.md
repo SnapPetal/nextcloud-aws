@@ -93,9 +93,10 @@ Vaultwarden serves internally on HTTP port 80. Use the official Bitwarden client
 
 ## Backups
 
-`scripts/backup-to-s3.sh` runs nightly at 02:00 via cron. Backs up both databases and uploads to S3:
+`scripts/backup-to-s3.sh` runs nightly at 02:00 via cron. Backs up all three databases and uploads to S3:
 - MariaDB → `s3://${S3_DB_BACKUP_BUCKET}/mariadb/`
 - PostgreSQL (Ente) → `s3://${S3_DB_BACKUP_BUCKET}/postgres/`
+- SQLite (Vaultwarden) → `s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/`
 
 Keeps last 3 local copies in `/mnt/nextcloud-data/backups/`. Cron log at `/mnt/nextcloud-data/backups/cron.log`.
 

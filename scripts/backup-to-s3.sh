@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Automated Database Backup to S3
-# Backs up MariaDB (Nextcloud) and PostgreSQL (Ente), retains last 3 local copies,
-# and uploads to S3.
+# Backs up MariaDB (Nextcloud), PostgreSQL (Ente), and SQLite (Vaultwarden),
+# retains last 3 local copies, and uploads to S3.
 #
 # Bucket priority:
 #   S3_DB_BACKUP_BUCKET  — dedicated bucket (setup-db-backup-bucket.sh); uploads to
@@ -18,6 +18,7 @@ BACKUP_DIR="/mnt/nextcloud-data/backups"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 MARIADB_FILE="nextcloud-db-${TIMESTAMP}.sql.gz"
 PG_FILE="ente-db-${TIMESTAMP}.sql.gz"
+VW_FILE="vaultwarden-db-${TIMESTAMP}.sqlite3.gz"
 LOG_FILE="${BACKUP_DIR}/backup.log"
 
 log() {
@@ -82,6 +83,33 @@ fi
 REMAINING=$(ls -1 "${BACKUP_DIR}"/nextcloud-db-*.sql.gz 2>/dev/null | wc -l)
 log "Local MariaDB backups remaining: ${REMAINING}"
 
+# ── Vaultwarden SQLite backup ────────────────────────────────────────────────
+
+VW_BACKED_UP=false
+
+if docker ps --format '{{.Names}}' | grep -q '^vaultwarden$'; then
+    log "Starting Vaultwarden SQLite backup..."
+
+    docker cp vaultwarden:/data/db.sqlite3 - | gzip > "${BACKUP_DIR}/${VW_FILE}"
+
+    if [ ! -s "${BACKUP_DIR}/${VW_FILE}" ]; then
+        log "ERROR: Vaultwarden backup file is empty or missing!"
+        exit 1
+    fi
+
+    log "Vaultwarden backup created: ${VW_FILE} ($(du -h "${BACKUP_DIR}/${VW_FILE}" | cut -f1))"
+
+    # Retain only the last 3 Vaultwarden backups locally
+    log "Cleaning old local Vaultwarden backups (keeping last 3)..."
+    cd "$BACKUP_DIR"
+    ls -1t vaultwarden-db-*.sqlite3.gz 2>/dev/null | tail -n +4 | xargs -r rm -f
+    cd ~/nextcloud-aws
+
+    VW_BACKED_UP=true
+else
+    log "Vaultwarden container not running — skipping SQLite backup"
+fi
+
 # ── Upload to S3 ────────────────────────────────────────────────────────────
 
 if [ -n "${S3_DB_BACKUP_BUCKET:-}" ]; then
@@ -94,6 +122,12 @@ if [ -n "${S3_DB_BACKUP_BUCKET:-}" ]; then
         log "Uploading PostgreSQL backup to s3://${S3_DB_BACKUP_BUCKET}/postgres/..."
         aws s3 cp "${BACKUP_DIR}/${PG_FILE}" \
             "s3://${S3_DB_BACKUP_BUCKET}/postgres/${PG_FILE}"
+    fi
+
+    if [ "$VW_BACKED_UP" = true ]; then
+        log "Uploading Vaultwarden backup to s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/..."
+        aws s3 cp "${BACKUP_DIR}/${VW_FILE}" \
+            "s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/${VW_FILE}"
     fi
 
     log "S3 upload complete (bucket: ${S3_DB_BACKUP_BUCKET})"
