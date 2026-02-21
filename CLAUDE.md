@@ -16,7 +16,7 @@ Internet (HTTPS 443) → Nginx (host, SSL via Certbot) → Docker bridge (nextcl
   photos.thonbecker.biz       → 127.0.0.1:3000 (Ente Web)
   api.photos.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
   status.thonbecker.biz       → 127.0.0.1:3001 (Uptime Kuma)
-  vault.thonbecker.biz        → 127.0.0.1:3002 (KeeWeb)
+  vault.thonbecker.biz        → 127.0.0.1:3002 (Vaultwarden)
 ```
 
 Nine containers in docker-compose.yml:
@@ -33,8 +33,8 @@ Nine containers in docker-compose.yml:
 - **ente-postgres** — PostgreSQL 15 for Ente metadata
 - **ente-web** — Ente Photos web app, binds 127.0.0.1:3000 (proxied at photos.thonbecker.biz)
 
-**KeeWeb:**
-- **keeweb** — KeeWeb password manager web app (antelle/keeweb), binds 127.0.0.1:3002 (proxied at vault.thonbecker.biz)
+**Vaultwarden:**
+- **vaultwarden** — Bitwarden-compatible password manager (vaultwarden/server), binds 127.0.0.1:3002 (proxied at vault.thonbecker.biz)
 
 **Storage split:** Root filesystem holds app files (`/var/lib/nextcloud/app`) and DB (`/var/lib/nextcloud/mysql`). A 300 GB Lightsail block storage volume at `/mnt/nextcloud-data` holds user data and backups.
 
@@ -89,7 +89,7 @@ nginx/api.photos.thonbecker.biz  → api.photos.thonbecker.biz
 nginx/vault.thonbecker.biz       → vault.thonbecker.biz
 ```
 
-KeeWeb (antelle/keeweb) serves internally on HTTPS port 443 with a self-signed cert. The nginx proxy uses `proxy_ssl_verify off` to connect to it.
+Vaultwarden serves internally on HTTP port 80. Use the official Bitwarden clients (browser extension, mobile, desktop) pointed at `https://vault.thonbecker.biz`. Admin panel at `https://vault.thonbecker.biz/admin`.
 
 ## Backups
 

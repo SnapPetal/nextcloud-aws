@@ -28,7 +28,7 @@ jobs:
             git pull origin main
 
             # Pull latest Docker images (only standard images, not custom-built ones)
-            docker compose pull db redis clamav kuma ente-postgres ente-museum ente-web keeweb
+            docker compose pull db redis clamav kuma ente-postgres ente-museum ente-web vaultwarden
 
             # Generate museum.yaml from template + .env secrets
             ./scripts/generate-museum-yaml.sh

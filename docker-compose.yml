@@ -162,12 +162,17 @@ services:
     networks:
       - nextcloud-net
 
-  keeweb:
-    image: antelle/keeweb
-    container_name: keeweb
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3002:443"
+      - "127.0.0.1:3002:80"
+    volumes:
+      - vaultwarden-data:/data
+    environment:
+      - DOMAIN=https://vault.thonbecker.biz
+      - ADMIN_TOKEN=${VAULTWARDEN_ADMIN_TOKEN}
     networks:
       - nextcloud-net
 
@@ -179,3 +184,4 @@ volumes:
   clamav-data:
   kuma-data:
   ente-postgres-data:
+  vaultwarden-data:
