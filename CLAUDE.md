@@ -16,9 +16,10 @@ Internet (HTTPS 443) → Nginx (host, SSL via Certbot) → Docker bridge (nextcl
   photos.thonbecker.biz       → 127.0.0.1:3000 (Ente Web)
   api.photos.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
   status.thonbecker.biz       → 127.0.0.1:3001 (Uptime Kuma)
+  vault.thonbecker.biz        → 127.0.0.1:3002 (KeeWeb)
 ```
 
-Eight containers in docker-compose.yml:
+Nine containers in docker-compose.yml:
 
 **Nextcloud:**
 - **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor), binds 127.0.0.1:8080
@@ -31,6 +32,9 @@ Eight containers in docker-compose.yml:
 - **ente-museum** — Ente API server, binds 127.0.0.1:8082 (proxied at api.photos.thonbecker.biz)
 - **ente-postgres** — PostgreSQL 15 for Ente metadata
 - **ente-web** — Ente Photos web app, binds 127.0.0.1:3000 (proxied at photos.thonbecker.biz)
+
+**KeeWeb:**
+- **keeweb** — KeeWeb password manager web app (antelle/keeweb), binds 127.0.0.1:3002 (proxied at vault.thonbecker.biz)
 
 **Storage split:** Root filesystem holds app files (`/var/lib/nextcloud/app`) and DB (`/var/lib/nextcloud/mysql`). A 300 GB Lightsail block storage volume at `/mnt/nextcloud-data` holds user data and backups.
 
@@ -75,14 +79,17 @@ PHP is tuned for 8 GB RAM: `PHP_MEMORY_LIMIT=4G`, `PHP_UPLOAD_LIMIT=10G`, Opcach
 
 ## Nginx
 
-All four virtual host configs live in `nginx/` and are symlinked into `/etc/nginx/sites-enabled/`. SSL is managed by Certbot (`authenticator = nginx` for all domains). Do not edit configs in `/etc/nginx/sites-available/` — edit the repo copies in `nginx/` instead.
+All five virtual host configs live in `nginx/` and are symlinked into `/etc/nginx/sites-enabled/`. SSL is managed by Certbot (`authenticator = nginx` for all domains). Do not edit configs in `/etc/nginx/sites-available/` — edit the repo copies in `nginx/` instead.
 
 ```
-nginx/nextcloud               → cloud.thonbecker.biz
-nginx/kuma                    → status.thonbecker.biz
-nginx/photos.thonbecker.biz   → photos.thonbecker.biz
-nginx/api.photos.thonbecker.biz → api.photos.thonbecker.biz
+nginx/nextcloud                  → cloud.thonbecker.biz
+nginx/kuma                       → status.thonbecker.biz
+nginx/photos.thonbecker.biz      → photos.thonbecker.biz
+nginx/api.photos.thonbecker.biz  → api.photos.thonbecker.biz
+nginx/vault.thonbecker.biz       → vault.thonbecker.biz
 ```
+
+KeeWeb (antelle/keeweb) serves internally on HTTPS port 443 with a self-signed cert. The nginx proxy uses `proxy_ssl_verify off` to connect to it.
 
 ## Backups
 
@@ -94,7 +101,7 @@ Keeps last 3 local copies in `/mnt/nextcloud-data/backups/`. Cron log at `/mnt/n
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, reloads nginx, then verifies all 8 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
+`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, reloads nginx, then verifies all 9 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
 Dependabot checks weekly for GitHub Actions and Docker base image updates.
 

@@ -162,6 +162,15 @@ services:
     networks:
       - nextcloud-net
 
+  keeweb:
+    image: antelle/keeweb
+    container_name: keeweb
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3002:443"
+    networks:
+      - nextcloud-net
+
 networks:
   nextcloud-net:
     driver: bridge

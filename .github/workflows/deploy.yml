@@ -28,7 +28,7 @@ jobs:
             git pull origin main
 
             # Pull latest Docker images (only standard images, not custom-built ones)
-            docker compose pull db redis clamav kuma ente-postgres ente-museum ente-web
+            docker compose pull db redis clamav kuma ente-postgres ente-museum ente-web keeweb
 
             # Generate museum.yaml from template + .env secrets
             ./scripts/generate-museum-yaml.sh
@@ -57,7 +57,7 @@ jobs:
             sleep 10
 
             # Check if all containers are running
-            if [ $(docker compose -f ~/nextcloud-aws/docker-compose.yml ps -q | wc -l) -eq 8 ]; then
+            if [ $(docker compose -f ~/nextcloud-aws/docker-compose.yml ps -q | wc -l) -eq 9 ]; then
               echo "All containers are running successfully!"
             else
               echo "Warning: Some containers may not be running"
