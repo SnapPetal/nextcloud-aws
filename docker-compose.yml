@@ -95,45 +95,6 @@ services:
       retries: 3
       start_period: 120s
 
-  netdata:
-    image: netdata/netdata:latest
-    container_name: netdata
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:19999:19999"
-    cap_add:
-      - SYS_PTRACE
-      - SYS_ADMIN
-    security_opt:
-      - apparmor:unconfined
-    volumes:
-      - netdata-config:/etc/netdata
-      - netdata-lib:/var/lib/netdata
-      - netdata-cache:/var/cache/netdata
-      - ./netdata/health_alarm_notify.conf:/etc/netdata/health_alarm_notify.conf:ro
-      - ./netdata/go.d/httpcheck.conf:/etc/netdata/go.d/httpcheck.conf:ro
-      - /etc/passwd:/host/etc/passwd:ro
-      - /etc/group:/host/etc/group:ro
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /etc/os-release:/host/etc/os-release:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    environment:
-      - DOCKER_HOST=unix:///var/run/docker.sock
-      - NETDATA_CLAIM_TOKEN=${NETDATA_CLAIM_TOKEN}
-      - NETDATA_CLAIM_ROOMS=${NETDATA_CLAIM_ROOMS}
-      - NETDATA_CLAIM_URL=https://app.netdata.cloud
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
-    networks:
-      - nextcloud-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:19999/api/v1/info"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   ente-postgres:
     image: postgres:15
     container_name: ente-postgres
@@ -213,8 +174,5 @@ networks:
 
 volumes:
   clamav-data:
-  netdata-config:
-  netdata-lib:
-  netdata-cache:
   ente-postgres-data:
   vaultwarden-data:

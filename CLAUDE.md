@@ -19,14 +19,16 @@ Internet (HTTPS 443) → Nginx (host, SSL via Certbot) → Docker bridge (nextcl
   vault.thonbecker.biz        → 127.0.0.1:3002 (Vaultwarden)
 ```
 
-Nine containers in docker-compose.yml:
+Eight containers in docker-compose.yml:
 
 **Nextcloud:**
 - **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor), binds 127.0.0.1:8080
 - **nextcloud-db** — MariaDB 10.11, data at /var/lib/nextcloud/mysql
 - **nextcloud-redis** — Redis Alpine, caching + file locking
 - **nextcloud-clamav** — ClamAV antivirus daemon on port 3310
-- **netdata** — Observability dashboard + alerting (disk, CPU, memory, Docker, HTTP checks), binds 127.0.0.1:19999 (proxied at status.thonbecker.biz). Alerts via AWS SNS.
+
+**Observability (native host service, not containerized):**
+- **netdata** — Native systemd service (installed via apt from Netdata repo), binds 127.0.0.1:19999 (proxied at status.thonbecker.biz). Alerts via AWS SNS. Config symlinked from `netdata/` into `/etc/netdata/`. AWS credentials injected via `/etc/systemd/system/netdata.service.d/override.conf`.
 
 **Ente Photos:**
 - **ente-museum** — Ente API server, binds 127.0.0.1:8082 (proxied at api.photos.thonbecker.biz)
@@ -62,6 +64,12 @@ docker compose exec -u www-data app php occ maintenance:mode --off
 
 # Reload nginx after config changes
 sudo systemctl reload nginx
+
+# Netdata (native systemd service — not containerized)
+sudo systemctl status netdata
+sudo systemctl restart netdata   # after config changes in netdata/
+sudo systemctl stop netdata
+sudo systemctl start netdata
 
 # SSL certificate renewal (automatic via certbot.timer, twice daily)
 sudo certbot renew --dry-run   # test
@@ -115,7 +123,7 @@ Keeps last 3 local copies in `/mnt/nextcloud-data/backups/`. Cron log at `/mnt/n
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, reloads nginx, then verifies all 9 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
+`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, reloads nginx, then verifies all 8 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
 **Deployment safety notes:**
 - `docker compose up -d` only restarts containers whose image or config actually changed — services with unchanged images are not touched
@@ -143,5 +151,7 @@ aws-vault exec thonbecker -- <command>
 - The app container is always rebuilt (not just pulled) on deploy to get the latest nextcloud:apache base
 - `supervisord.conf` runs both apache2 and cron inside the app container (runs as root explicitly to suppress supervisord warning)
 - Nginx runs on the host (not containerized) handling SSL termination and reverse proxy
+- Netdata runs on the host (not containerized) as a native systemd service for true host-level observability
 - Trusted proxies configured for RFC-1918 ranges to handle Nginx forwarding
 - All nginx virtual host configs are version-controlled in `nginx/` — symlinked from `/etc/nginx/sites-enabled/`
+- Netdata configs are version-controlled in `netdata/` — symlinked from `/etc/netdata/`
