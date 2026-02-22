@@ -95,14 +95,12 @@ Vaultwarden serves internally on HTTP port 80. Use the official Bitwarden client
 
 **Admin panel:** `https://vault.thonbecker.biz/admin` — token is `VAULTWARDEN_ADMIN_TOKEN` in `.env`.
 
-**Inviting a new user:**
-1. Admin panel → **Users** → enter email → **Invite**
-2. User receives email, clicks link, creates their account at `https://vault.thonbecker.biz`
+**Family/spouse sharing (simplest approach):**
+Both people log into the same account — same email and master password, server URL `https://vault.thonbecker.biz`. Works with the browser extension, mobile app, or web vault. No Organizations needed.
 
-**Sharing passwords between users (Organizations):**
-1. Log into the web vault → **Organizations** → **New Organization**
-2. Inside the org → **Members** → **Invite Member** (enter spouse/family email)
-3. Move items to share into the org's **Collections** — shared members see them in their own vault
+**Inviting a separate user (optional):**
+1. Admin panel → **Users** → enter email → **Invite**
+2. User receives email, clicks link, creates their account
 
 **Admin diagnostics (`https://vault.thonbecker.biz/admin/diagnostics`):**
 - Run in a **private/incognito window** — browser extensions (user-agent spoofers, fingerprint defenders, etc.) intercept XHR responses and cause false "header missing" failures in the HTTP Response Validation section
