@@ -15,7 +15,7 @@ Internet (HTTPS 443) → Nginx (host, SSL via Certbot) → Docker bridge (nextcl
   cloud.thonbecker.biz        → 127.0.0.1:8080 (Nextcloud)
   photos.thonbecker.biz       → 127.0.0.1:3000 (Ente Web)
   api.photos.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
-  status.thonbecker.biz       → 127.0.0.1:3001 (Uptime Kuma)
+  status.thonbecker.biz       → 127.0.0.1:19999 (Netdata)
   vault.thonbecker.biz        → 127.0.0.1:3002 (Vaultwarden)
 ```
 
@@ -26,7 +26,7 @@ Nine containers in docker-compose.yml:
 - **nextcloud-db** — MariaDB 10.11, data at /var/lib/nextcloud/mysql
 - **nextcloud-redis** — Redis Alpine, caching + file locking
 - **nextcloud-clamav** — ClamAV antivirus daemon on port 3310
-- **nextcloud-kuma** — Uptime Kuma monitoring, binds 127.0.0.1:3001 (proxied at status.thonbecker.biz)
+- **netdata** — Observability dashboard + alerting (disk, CPU, memory, Docker, HTTP checks), binds 127.0.0.1:19999 (proxied at status.thonbecker.biz). Alerts via AWS SNS.
 
 **Ente Photos:**
 - **ente-museum** — Ente API server, binds 127.0.0.1:8082 (proxied at api.photos.thonbecker.biz)
