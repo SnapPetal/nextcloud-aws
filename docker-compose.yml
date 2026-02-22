@@ -173,6 +173,13 @@ services:
     environment:
       - DOMAIN=https://vault.thonbecker.biz
       - ADMIN_TOKEN=${VAULTWARDEN_ADMIN_TOKEN}
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_SECURITY=starttls
+      - SMTP_FROM=${VAULTWARDEN_SMTP_FROM}
+      - SMTP_USERNAME=${VAULTWARDEN_SMTP_USERNAME}
+      - SMTP_PASSWORD=${VAULTWARDEN_SMTP_PASSWORD}
+      - SIGNUPS_VERIFY=true
     networks:
       - nextcloud-net
 
