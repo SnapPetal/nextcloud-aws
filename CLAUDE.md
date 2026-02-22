@@ -91,6 +91,24 @@ nginx/vault.thonbecker.biz       → vault.thonbecker.biz
 
 Vaultwarden serves internally on HTTP port 80. Use the official Bitwarden clients (browser extension, mobile, desktop) pointed at `https://vault.thonbecker.biz`. Admin panel at `https://vault.thonbecker.biz/admin`.
 
+## Vaultwarden User Management
+
+**Admin panel:** `https://vault.thonbecker.biz/admin` — token is `VAULTWARDEN_ADMIN_TOKEN` in `.env`.
+
+**Inviting a new user:**
+1. Admin panel → **Users** → enter email → **Invite**
+2. User receives email, clicks link, creates their account at `https://vault.thonbecker.biz`
+
+**Sharing passwords between users (Organizations):**
+1. Log into the web vault → **Organizations** → **New Organization**
+2. Inside the org → **Members** → **Invite Member** (enter spouse/family email)
+3. Move items to share into the org's **Collections** — shared members see them in their own vault
+
+**Admin diagnostics (`https://vault.thonbecker.biz/admin/diagnostics`):**
+- Run in a **private/incognito window** — browser extensions (user-agent spoofers, fingerprint defenders, etc.) intercept XHR responses and cause false "header missing" failures in the HTTP Response Validation section
+- All required security headers (`x-frame-options`, `x-content-type-options`, `referrer-policy`, `x-xss-protection`, `x-robots-tag`, `cross-origin-resource-policy`, `content-security-policy`) are set by Vaultwarden natively; nginx only overrides `x-frame-options` and `x-content-type-options` for the main `location /` block
+- Connector pages (`*-connector.html`) intentionally omit `x-frame-options` and `content-security-policy` so they can be embedded in iframes for 2FA flows
+
 ## Backups
 
 `scripts/backup-to-s3.sh` runs nightly at 02:00 via cron. Backs up all three databases and uploads to S3:
@@ -103,6 +121,11 @@ Keeps last 3 local copies in `/mnt/nextcloud-data/backups/`. Cron log at `/mnt/n
 ## CI/CD
 
 `.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, reloads nginx, then verifies all 9 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
+
+**Deployment safety notes:**
+- `docker compose up -d` only restarts containers whose image or config actually changed — services with unchanged images are not touched
+- nginx reload runs `nginx -t` first; if any virtual host config has a syntax error the reload is aborted and the existing config stays live (no other services are affected)
+- Each nginx virtual host config (`nginx/`) is independent — changes to `vault.thonbecker.biz` cannot affect Nextcloud, Ente, or Kuma configs
 
 Dependabot checks weekly for GitHub Actions and Docker base image updates.
 
