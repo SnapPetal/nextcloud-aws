@@ -154,4 +154,4 @@ aws-vault exec thonbecker -- <command>
 - Netdata runs on the host (not containerized) as a native systemd service for true host-level observability
 - Trusted proxies configured for RFC-1918 ranges to handle Nginx forwarding
 - All nginx virtual host configs are version-controlled in `nginx/` — symlinked from `/etc/nginx/sites-enabled/`
-- Netdata configs are version-controlled in `netdata/` — symlinked from `/etc/netdata/`
+- Netdata configs are version-controlled in `netdata/` — symlinked from `/etc/netdata/` (`netdata.conf`, `health_alarm_notify.conf`, `go.d/httpcheck.conf`)
