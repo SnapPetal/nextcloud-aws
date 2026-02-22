@@ -95,10 +95,7 @@ Vaultwarden serves internally on HTTP port 80. Use the official Bitwarden client
 
 **Admin panel:** `https://vault.thonbecker.biz/admin` — token is `VAULTWARDEN_ADMIN_TOKEN` in `.env`.
 
-**Family/spouse sharing (simplest approach):**
-Both people log into the same account — same email and master password, server URL `https://vault.thonbecker.biz`. Works with the browser extension, mobile app, or web vault. No Organizations needed.
-
-**Inviting a separate user (optional):**
+**Inviting a user:**
 1. Admin panel → **Users** → enter email → **Invite**
 2. User receives email, clicks link, creates their account
 
