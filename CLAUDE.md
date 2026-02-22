@@ -126,8 +126,10 @@ Dependabot checks weekly for GitHub Actions and Docker base image updates.
 
 ## SSH Access
 
+> **Note for Claude Code:** When running with the working directory `/home/ubuntu/nextcloud-aws`, you are already on the Lightsail server. Do not SSH — run commands directly.
+
 ```bash
-# SSH into Lightsail instance
+# SSH into Lightsail instance (only needed from a remote machine)
 ssh -i ~/.ssh/lightsail.pem ubuntu@18.213.161.133
 
 # AWS CLI with credentials
