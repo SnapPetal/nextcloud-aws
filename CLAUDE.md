@@ -83,7 +83,7 @@ All five virtual host configs live in `nginx/` and are symlinked into `/etc/ngin
 
 ```
 nginx/nextcloud                  → cloud.thonbecker.biz
-nginx/kuma                       → status.thonbecker.biz
+nginx/status.thonbecker.biz      → status.thonbecker.biz
 nginx/photos.thonbecker.biz      → photos.thonbecker.biz
 nginx/api.photos.thonbecker.biz  → api.photos.thonbecker.biz
 nginx/vault.thonbecker.biz       → vault.thonbecker.biz
@@ -120,7 +120,7 @@ Keeps last 3 local copies in `/mnt/nextcloud-data/backups/`. Cron log at `/mnt/n
 **Deployment safety notes:**
 - `docker compose up -d` only restarts containers whose image or config actually changed — services with unchanged images are not touched
 - nginx reload runs `nginx -t` first; if any virtual host config has a syntax error the reload is aborted and the existing config stays live (no other services are affected)
-- Each nginx virtual host config (`nginx/`) is independent — changes to `vault.thonbecker.biz` cannot affect Nextcloud, Ente, or Kuma configs
+- Each nginx virtual host config (`nginx/`) is independent — changes to one virtual host cannot affect any other
 
 Dependabot checks weekly for GitHub Actions and Docker base image updates.
 
