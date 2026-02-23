@@ -40,6 +40,11 @@ Eight containers in docker-compose.yml:
 
 **Storage split:** Root filesystem holds app files (`/var/lib/nextcloud/app`) and DB (`/var/lib/nextcloud/mysql`). A 300 GB Lightsail block storage volume at `/mnt/nextcloud-data` holds user data and backups.
 
+## Nextcloud App Notes
+
+**Removed apps (do not reinstall):**
+- **recognize** and **memories** — removed in favor of Ente Photos.
+
 ## Key Commands
 
 ```bash
