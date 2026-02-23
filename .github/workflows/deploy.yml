@@ -27,6 +27,9 @@ jobs:
             # Pull latest changes
             git pull origin main
 
+            # Restart Netdata if any netdata/ configs changed (configs are symlinked into /etc/netdata/)
+            git diff ORIG_HEAD HEAD --name-only | grep -q '^netdata/' && sudo systemctl restart netdata || true
+
             # Pull latest Docker images (only standard images, not custom-built ones)
             docker compose pull db redis clamav ente-postgres ente-museum ente-web vaultwarden
 
