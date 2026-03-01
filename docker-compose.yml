@@ -21,7 +21,7 @@ services:
       start_period: 30s
 
   redis:
-    image: redis:alpine
+    image: redis:8-alpine
     container_name: nextcloud-redis
     restart: unless-stopped
     networks:
@@ -81,7 +81,7 @@ services:
       start_period: 60s
 
   clamav:
-    image: clamav/clamav:latest
+    image: clamav/clamav:1.5
     container_name: nextcloud-clamav
     restart: unless-stopped
     volumes:
@@ -146,7 +146,7 @@ services:
       - nextcloud-net
 
   vaultwarden:
-    image: vaultwarden/server:latest
+    image: vaultwarden/server:1.35.3
     container_name: vaultwarden
     restart: unless-stopped
     ports:

@@ -1,4 +1,4 @@
-FROM nextcloud:apache
+FROM nextcloud:32-apache
 
 # Install additional tools for preview generation and process management
 RUN set -ex; \
