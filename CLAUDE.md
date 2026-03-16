@@ -21,6 +21,24 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 
 All five domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). Incoming IPs seen by nginx are Cloudflare ranges — trusted proxies are configured for RFC-1918 ranges which covers the nginx→container hop. Certbot uses the `nginx` authenticator (HTTP-01 challenge), which works through Cloudflare proxy.
 
+**Cloudflare feature settings:**
+
+| Feature | Setting | Notes |
+|---|---|---|
+| HTTP/2 to Origin | ✅ On | nginx supports it |
+| HTTP/3 (with QUIC) | ✅ On | Faster connections |
+| 0-RTT Connection Resumption | Off | Minor replay attack risk, little benefit |
+| Always Use HTTPS | ✅ On | Belt-and-suspenders with nginx |
+| TLS 1.3 | ✅ On | nginx supports it |
+| Normalize incoming URLs | ✅ On | Prevents path confusion attacks |
+| WebSockets | ✅ On | Required for Nextcloud Office and Vaultwarden |
+| Onion Routing | Off | Not needed |
+| Browser Integrity Check | Caution | Can block Nextcloud desktop/mobile sync clients — test after enabling |
+| Hotlink Protection | ❌ Off | Breaks Nextcloud file sharing and public links |
+| Web Analytics (RUM) | Off | Injects JS into pages, can interfere with Nextcloud's CSP headers |
+| Rocket Loader | ❌ Off | Breaks Nextcloud's JavaScript — never enable |
+| Mirage / Polish | ❌ Off | Can corrupt file transfers and break previews |
+
 Eight containers in docker-compose.yml:
 
 **Nextcloud:**
