@@ -11,13 +11,15 @@ Infrastructure-as-configuration repository for a self-hosted Nextcloud instance 
 ## Architecture
 
 ```
-Internet (HTTPS 443) → Nginx (host, SSL via Certbot) → Docker bridge (nextcloud-net)
+Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bridge (nextcloud-net)
   cloud.thonbecker.biz        → 127.0.0.1:8080 (Nextcloud)
   photos.thonbecker.biz       → 127.0.0.1:3000 (Ente Web)
   api.photos.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
   status.thonbecker.biz       → 127.0.0.1:19999 (Netdata)
   vault.thonbecker.biz        → 127.0.0.1:3002 (Vaultwarden)
 ```
+
+All five domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). Incoming IPs seen by nginx are Cloudflare ranges — trusted proxies are configured for RFC-1918 ranges which covers the nginx→container hop. Certbot uses the `nginx` authenticator (HTTP-01 challenge), which works through Cloudflare proxy.
 
 Eight containers in docker-compose.yml:
 
@@ -44,6 +46,22 @@ Eight containers in docker-compose.yml:
 
 **Removed apps (do not reinstall):**
 - **recognize** and **memories** — removed in favor of Ente Photos.
+
+**Nextcloud Office (bundled Collabora CODE):**
+Apps `richdocuments` + `richdocumentscode` provide in-browser document editing. The following occ config is required (not version-controlled — set manually):
+
+```bash
+docker compose exec -u www-data app php occ config:app:set richdocuments wopi_url \
+  --value="https://cloud.thonbecker.biz/custom_apps/richdocumentscode/proxy.php?req="
+docker compose exec -u www-data app php occ config:app:set richdocuments public_wopi_url \
+  --value="https://cloud.thonbecker.biz"
+docker compose exec -u www-data app php occ config:app:set richdocuments wopi_callback_url \
+  --value=""
+```
+
+Why: `proxy.php` constructs discovery XML URLs from `$_SERVER['HTTP_HOST']`. It must be fetched via the public URL so it returns `https://cloud.thonbecker.biz` URLs (not `http://localhost`) in the discovery XML. The `extra_hosts: cloud.thonbecker.biz:host-gateway` entry in `docker-compose.yml` lets the container reach nginx on the host without going through Cloudflare. `wopi_callback_url` left empty so WOPISrc uses the browser's URL rather than `http://localhost`.
+
+If document editing breaks (browser console shows `http://localhost` form-action errors), check these three settings and flush Redis: `docker compose exec redis redis-cli FLUSHALL`. Note: bundled Collabora takes 2–3 minutes to fully initialize after container start.
 
 ## Key Commands
 
@@ -157,6 +175,8 @@ aws-vault exec thonbecker -- <command>
 - `supervisord.conf` runs both apache2 and cron inside the app container (runs as root explicitly to suppress supervisord warning)
 - Nginx runs on the host (not containerized) handling SSL termination and reverse proxy
 - Netdata runs on the host (not containerized) as a native systemd service for true host-level observability
+- All five domains are Cloudflare-proxied; nginx sees Cloudflare IPs, not real client IPs
 - Trusted proxies configured for RFC-1918 ranges to handle Nginx forwarding
+- `nextcloud-app` has `extra_hosts: cloud.thonbecker.biz:host-gateway` so internal server-to-self requests route via the Docker bridge to nginx rather than through Cloudflare
 - All nginx virtual host configs are version-controlled in `nginx/` — symlinked from `/etc/nginx/sites-enabled/`
 - Netdata configs are version-controlled in `netdata/` — symlinked from `/etc/netdata/` (`netdata.conf`, `health_alarm_notify.conf`, `go.d/httpcheck.conf`)
