@@ -67,6 +67,8 @@ services:
       - PHP_OPCACHE_MEMORY_CONSUMPTION=512
       - PHP_OPCACHE_MAX_ACCELERATED_FILES=10000
       - PHP_OPCACHE_REVALIDATE_FREQ=2
+    extra_hosts:
+      - "cloud.thonbecker.biz:host-gateway"
     depends_on:
       - db
       - redis
