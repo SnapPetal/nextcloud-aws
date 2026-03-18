@@ -14,7 +14,7 @@ Infrastructure-as-configuration repository for a self-hosted Nextcloud instance 
 Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bridge (nextcloud-net)
   cloud.thonbecker.biz        → 127.0.0.1:8080 (Nextcloud)
   photos.thonbecker.biz       → 127.0.0.1:3000 (Ente Web)
-  api.photos.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
+  photos-api.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
   status.thonbecker.biz       → 127.0.0.1:19999 (Netdata)
   vault.thonbecker.biz        → 127.0.0.1:3002 (Vaultwarden)
 ```
@@ -48,10 +48,10 @@ Eight containers in docker-compose.yml:
 - **nextcloud-clamav** — ClamAV antivirus daemon on port 3310
 
 **Observability (native host service, not containerized):**
-- **netdata** — Native systemd service (installed via apt from Netdata repo), binds 127.0.0.1:19999 (proxied at status.thonbecker.biz). Alerts via AWS SNS. Config symlinked from `netdata/` into `/etc/netdata/`. AWS credentials injected via `/etc/systemd/system/netdata.service.d/override.conf`.
+- **netdata** — Native systemd service (installed via apt from Netdata repo), binds 127.0.0.1:19999 (proxied at status.thonbecker.biz). Alerts via AWS SNS (`NextcloudRecoveryTopic`). Config symlinked from `netdata/` into `/etc/netdata/`. AWS credentials injected via `/etc/systemd/system/netdata.service.d/override.conf` (loads `.env` as EnvironmentFile).
 
 **Ente Photos:**
-- **ente-museum** — Ente API server, binds 127.0.0.1:8082 (proxied at api.photos.thonbecker.biz)
+- **ente-museum** — Ente API server, binds 127.0.0.1:8082 (proxied at photos-api.thonbecker.biz)
 - **ente-postgres** — PostgreSQL 15 for Ente metadata
 - **ente-web** — Ente Photos web app, binds 127.0.0.1:3000 (proxied at photos.thonbecker.biz)
 
@@ -134,7 +134,7 @@ All five virtual host configs live in `nginx/` and are symlinked into `/etc/ngin
 nginx/nextcloud                  → cloud.thonbecker.biz
 nginx/status.thonbecker.biz      → status.thonbecker.biz
 nginx/photos.thonbecker.biz      → photos.thonbecker.biz
-nginx/api.photos.thonbecker.biz  → api.photos.thonbecker.biz
+nginx/photos-api.thonbecker.biz  → photos-api.thonbecker.biz
 nginx/vault.thonbecker.biz       → vault.thonbecker.biz
 ```
 
@@ -152,6 +152,44 @@ Vaultwarden serves internally on HTTP port 80. Use the official Bitwarden client
 - Run in a **private/incognito window** — browser extensions (user-agent spoofers, fingerprint defenders, etc.) intercept XHR responses and cause false "header missing" failures in the HTTP Response Validation section
 - All required security headers (`x-frame-options`, `x-content-type-options`, `referrer-policy`, `x-xss-protection`, `x-robots-tag`, `cross-origin-resource-policy`, `content-security-policy`) are set by Vaultwarden natively; nginx only overrides `x-frame-options` and `x-content-type-options` for the main `location /` block
 - Connector pages (`*-connector.html`) intentionally omit `x-frame-options` and `content-security-policy` so they can be embedded in iframes for 2FA flows
+
+## Netdata Alerting
+
+Notifications go via `alarm-notify.sh` → AWS SNS → email. The IAM user (`netdata-sns-user`) has only `sns:Publish` permission. The SNS topic is `NextcloudRecoveryTopic` (ARN in `.env` as `NETDATA_SNS_TOPIC_ARN`).
+
+**Known Netdata v2.x notification behavior:**
+- **CLEAR → WARNING**: alarm-notify.sh is **not invoked** — no notification sent for initial warning-level alerts
+- **WARNING → CRITICAL**: alarm-notify.sh is invoked; historically returns `exec_code=1` (fails to publish)
+- **CRITICAL → WARNING (recovery)**: alarm-notify.sh is invoked and succeeds (`exec_code=0`)
+
+In practice this means you will receive recovery notifications but not initial alert notifications. This is a v2.x behavior change from v1.x.
+
+**Noisy alarms to be aware of:**
+- `apps_group_file_descriptors_utilization` (role: `sysadmin`) — fires constantly for short-lived processes (cron jobs, certbot, etc.) hitting per-process fd limits. These are transient and harmless; they clear within seconds and never notify.
+
+**Diagnosing notification failures:**
+
+```bash
+# Test the full notification pipeline manually
+SNS_ARN=$(grep NETDATA_SNS_TOPIC_ARN /home/ubuntu/nextcloud-aws/.env | cut -d= -f2)
+sudo env AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_DEFAULT_REGION=us-east-1 \
+  NETDATA_SNS_TOPIC_ARN="$SNS_ARN" \
+  /usr/libexec/netdata/plugins.d/alarm-notify.sh test sysadmin
+
+# Check recent alarm notification history (requires sqlite3)
+sudo -u netdata sqlite3 /var/cache/netdata/netdata-meta.db "
+SELECT hld.unique_id, hl.name, hl.recipient, hld.new_status, hld.old_status,
+  datetime(hld.when_key, 'unixepoch') as alarm_time, hld.exec_run_timestamp, hld.exec_code
+FROM health_log_detail hld
+JOIN health_log hl ON hld.health_log_id = hl.health_log_id
+WHERE hld.new_status NOT IN (-3,-2,-1,0)
+ORDER BY hld.unique_id DESC LIMIT 20;"
+
+# Verify SNS publish works directly
+aws sns publish --topic-arn "$SNS_ARN" --message "test" --subject "test"
+```
+
+**SNS subscription:** The topic has a confirmed email subscription. To check/manage subscriptions, use the AWS console — the IAM user on the server lacks `sns:ListSubscriptions` permission.
 
 ## Backups
 

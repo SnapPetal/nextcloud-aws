@@ -114,7 +114,7 @@ NGINX_DIR="$PROJECT_DIR/nginx"
 
 echo "Symlinking Nginx configs..."
 sudo ln -sf "$NGINX_DIR/photos.thonbecker.biz" /etc/nginx/sites-enabled/photos.thonbecker.biz
-sudo ln -sf "$NGINX_DIR/api.photos.thonbecker.biz" /etc/nginx/sites-enabled/api.photos.thonbecker.biz
+sudo ln -sf "$NGINX_DIR/photos-api.thonbecker.biz" /etc/nginx/sites-enabled/photos-api.thonbecker.biz
 
 echo "Testing Nginx configuration..."
 sudo nginx -t
@@ -124,7 +124,7 @@ sudo systemctl reload nginx
 
 echo ""
 echo "Run certbot to enable SSL:"
-echo "  sudo certbot --nginx -d photos.thonbecker.biz -d api.photos.thonbecker.biz"
+echo "  sudo certbot --nginx -d photos.thonbecker.biz -d photos-api.thonbecker.biz"
 echo ""
 
 echo "Starting Ente containers..."
