@@ -13,7 +13,7 @@ Infrastructure-as-configuration repository for a self-hosted Nextcloud instance 
 ```
 Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bridge (nextcloud-net)
   cloud.thonbecker.biz        → 127.0.0.1:8080 (Nextcloud)
-  www.thonbecker.biz          → 127.0.0.1:3003 (Personal Website)
+  thonbecker.biz              → 127.0.0.1:3003 (Personal Website)
   photos.thonbecker.biz       → 127.0.0.1:3000 (Ente Web)
   photos-api.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
   status.thonbecker.biz       → 127.0.0.1:19999 (Netdata)
@@ -40,7 +40,7 @@ All six domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DD
 | Rocket Loader | ❌ Off | Breaks Nextcloud's JavaScript — never enable |
 | Mirage / Polish | ❌ Off | Can corrupt file transfers and break previews |
 
-Ten containers in docker-compose.yml:
+Nine containers in docker-compose.yml:
 
 **Nextcloud:**
 - **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor), binds 127.0.0.1:8080
@@ -57,8 +57,7 @@ Ten containers in docker-compose.yml:
 - **ente-web** — Ente Photos web app, binds 127.0.0.1:3000 (proxied at photos.thonbecker.biz)
 
 **Personal Website:**
-- **personal-website** — Personal web app from public ECR (`public.ecr.aws/p0w8z2j2/personal`), binds 127.0.0.1:3003 (proxied at www.thonbecker.biz)
-- **personal-postgres** — PostgreSQL 15 for personal website data
+- **personal-website** — Personal web app (Spring Boot) from public ECR (`public.ecr.aws/p0w8z2j2/personal`), binds 127.0.0.1:3003 (proxied at thonbecker.biz). Uses external RDS PostgreSQL, not a local container.
 
 **Vaultwarden:**
 - **vaultwarden** — Bitwarden-compatible password manager (vaultwarden/server), binds 127.0.0.1:3002 (proxied at vault.thonbecker.biz)
@@ -137,7 +136,7 @@ All five virtual host configs live in `nginx/` and are symlinked into `/etc/ngin
 
 ```
 nginx/nextcloud                  → cloud.thonbecker.biz
-nginx/www.thonbecker.biz         → www.thonbecker.biz
+nginx/www.thonbecker.biz         → thonbecker.biz
 nginx/status.thonbecker.biz      → status.thonbecker.biz
 nginx/photos.thonbecker.biz      → photos.thonbecker.biz
 nginx/photos-api.thonbecker.biz  → photos-api.thonbecker.biz
@@ -208,7 +207,7 @@ Keeps last 3 local copies in `/mnt/nextcloud-data/backups/`. Cron log at `/mnt/n
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, reloads nginx, then verifies all 10 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
+`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, reloads nginx, then verifies all 9 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
 **Deployment safety notes:**
 - `docker compose up -d` only restarts containers whose image or config actually changed — services with unchanged images are not touched

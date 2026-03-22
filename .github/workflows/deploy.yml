@@ -61,7 +61,7 @@ jobs:
             sleep 10
 
             # Check if all containers are running
-            if [ $(docker compose -f ~/nextcloud-aws/docker-compose.yml ps -q | wc -l) -eq 10 ]; then
+            if [ $(docker compose -f ~/nextcloud-aws/docker-compose.yml ps -q | wc -l) -eq 9 ]; then
               echo "All containers are running successfully!"
             else
               echo "Warning: Some containers may not be running"
