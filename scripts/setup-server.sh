@@ -71,7 +71,7 @@ if [ -n "$DEVICE_NAME" ]; then
 
     echo ""
     echo -e "${GREEN}Step 5: Mounting storage volume${NC}"
-    DATA_MOUNT="/mnt/nextcloud-data"
+    DATA_MOUNT="/var/lib/nextcloud/data"
     sudo mkdir -p "$DATA_MOUNT"
 
     # Mount the device
@@ -89,7 +89,7 @@ if [ -n "$DEVICE_NAME" ]; then
         echo "Added entry to /etc/fstab for automatic mounting"
     fi
 else
-    DATA_MOUNT="/mnt/nextcloud-data"
+    DATA_MOUNT="/var/lib/nextcloud/data"
     echo -e "${YELLOW}Skipping volume setup. Using $DATA_MOUNT${NC}"
     sudo mkdir -p "$DATA_MOUNT"
 fi

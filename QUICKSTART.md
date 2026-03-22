@@ -12,24 +12,13 @@ Your Nextcloud will be accessible at: **https://cloud.thonbecker.biz**
    - **Region**: US East (N. Virginia) or your preferred region
    - **Platform**: Linux/Unix
    - **Blueprint**: Ubuntu 22.04 LTS
-   - **Plan**: $10/month (2 GB RAM, 1 vCPU, 60 GB SSD)
+   - **Plan**: 16 GB RAM, 4 vCPU
    - **Name**: `nextcloud-prod`
 4. Click **Create instance**
 
-### B. Create Block Storage Volume
+### B. Database (Included)
 
-1. In Lightsail console, click **Storage** tab
-2. Click **Create disk**
-3. Configure:
-   - **Size**: 100 GB
-   - **Availability Zone**: Same as your instance
-   - **Name**: `nextcloud-prod-data`
-   - **Attach to instance**: `nextcloud-prod`
-4. Click **Create**
-
-### C. Database (Included)
-
-The database is now included as a local MariaDB container in the docker-compose.yml - no external database setup needed!
+The database is included as a local MariaDB container in docker-compose.yml — no external database setup needed.
 
 ## Step 2: Configure DNS
 
@@ -67,7 +56,6 @@ chmod +x scripts/setup-server.sh
 
 The script will:
 - Install Docker
-- Mount your block storage volume
 - Create necessary directories
 - Set up `.env` file
 
@@ -91,8 +79,8 @@ DB_USER=nextcloud
 DB_PASSWORD=your_secure_password
 MYSQL_ROOT_PASSWORD=your_secure_root_password
 
-# Block storage path (user files only - app/db are on root filesystem)
-DATA_PATH=/mnt/nextcloud-data
+# Data storage path
+DATA_PATH=/var/lib/nextcloud/data
 ```
 
 Save and exit (Ctrl+X, Y, Enter)
@@ -226,12 +214,11 @@ This provides a menu for:
 
 ## Cost Summary
 
-- Instance (8 GB): $44/month
-- Block Storage (300 GB): $30/month
+- Instance (16 GB, 4 vCPU): $80/month
 - S3 Storage: ~$0.023/GB/month (optional)
 - Database: Included (local MariaDB)
 - Static IP: Free
-- **Total: ~$74/month** (plus S3 if used)
+- **Total: ~$80/month** (plus S3 if used)
 
 ## Need Help?
 

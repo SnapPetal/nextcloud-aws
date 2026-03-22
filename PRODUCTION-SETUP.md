@@ -12,154 +12,74 @@ This file documents the actual production configuration of cloud.thonbecker.biz.
 
 | Resource | Name | Specs | Cost |
 |----------|------|-------|------|
-| Instance | nextcloud-prod | Ubuntu 22.04, 8 GB RAM, 2 vCPU | $44/month |
-| Block Storage | nextcloud-prod-data-300gb | 300 GB SSD | $30/month |
+| Instance | nextcloud-prod | Ubuntu 22.04, 16 GB RAM, 4 vCPU | $80/month |
 | S3 Storage | External storage | ~$0.023/GB/month | Variable |
 | Database | Local MariaDB | Container (included) | $0 |
 | Static IP | nextcloud-prod-ip | IPv4 | Free |
-| **Total** | | | **$74/month + S3** |
+| RDS | Personal Website DB | PostgreSQL | Variable |
+| **Total** | | | **~$80/month + RDS + S3** |
 
-### Storage Breakdown
+### Storage
 
-**Block Storage (300 GB) - User Files Only:**
-- Mount: `/mnt/nextcloud-data`
-- Contains: `/data` (user files)
-- Currently used: ~256 GB
-- Available: ~26 GB
+All data lives on the root filesystem under `/var/lib/nextcloud/`:
 
-**Root Filesystem - Application Data:**
-- Location: `/var/lib/nextcloud/`
-- Contains: `app/` (Nextcloud application ~4.4 GB), `mysql/` (MariaDB ~1.2 GB)
-- Used: ~20 GB of 154 GB
+- `app/` — Nextcloud application files
+- `mysql/` — MariaDB data
+- `data/` — User files and backups (`DATA_PATH` in `.env`)
 
-### Disk Details
-
-- **Device:** /dev/nvme1n1
-- **UUID:** 9295b677-3030-4e4c-9e14-cd1e09846620
-- **Filesystem:** ext4
-- **Mount:** /mnt/nextcloud-data
-- **Resized from:** 128 GB → 300 GB (January 2026)
+S3 available for overflow storage if needed.
 
 ## Network Configuration
 
-**SSL/TLS:** Let's Encrypt (auto-renews)
-**Web Server:** Nginx reverse proxy
-**Container Ports:**
-- Nginx: 443 (HTTPS), 80 (HTTP redirect)
-- Nextcloud: 127.0.0.1:8080 (internal only)
-- Redis: Internal container network
+**SSL/TLS:** Let's Encrypt (auto-renews via Certbot)
+**Web Server:** Nginx reverse proxy on host
+**CDN/Proxy:** Cloudflare (all six domains proxied)
+
+**Container Ports (localhost only):**
+- Nextcloud: 127.0.0.1:8080
+- Ente Web: 127.0.0.1:3000
+- Ente API: 127.0.0.1:8082
+- Personal Website: 127.0.0.1:3003
+- Vaultwarden: 127.0.0.1:3002
+- Netdata: 127.0.0.1:19999 (native service)
 
 **Firewall (Lightsail):**
 - Port 22 (SSH): Restricted to admin IP
 - Port 80 (HTTP): Open (redirects to HTTPS)
 - Port 443 (HTTPS): Open
 
-## Nginx Configuration
-
-**Location:** `/etc/nginx/sites-available/nextcloud`
-
-**Key features:**
-- SSL termination
-- CalDAV/CardDAV redirects for iOS/Android sync
-- 10 GB upload limit
-- Security headers
-- Proxy buffering disabled for large uploads
-
-See [docs/NGINX-SETUP.md](docs/NGINX-SETUP.md) for complete configuration.
-
 ## Docker Configuration
 
-**Containers:**
-- `nextcloud-app`: Official nextcloud:apache image
-- `nextcloud-redis`: redis:alpine for caching
-- `nextcloud-db`: MariaDB 10.11 for database
+**Containers (9 total):**
+- `nextcloud-app`: Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor)
+- `nextcloud-db`: MariaDB 10.11
+- `nextcloud-redis`: Redis Alpine (caching + file locking)
+- `nextcloud-clamav`: ClamAV antivirus
+- `ente-museum`: Ente API server
+- `ente-postgres`: PostgreSQL 15
+- `ente-web`: Ente Photos web app
+- `personal-website`: Spring Boot app from public ECR
+- `vaultwarden`: Bitwarden-compatible password manager
 
 **Volumes:**
-- `/var/lib/nextcloud/app` → `/var/www/html` (root filesystem)
-- `/mnt/nextcloud-data/data` → `/var/www/html/data` (block storage - user files only)
-- `/var/lib/nextcloud/mysql` → `/var/lib/mysql` (root filesystem)
-
-**Environment:**
-- Database: Local MariaDB container
-- Redis: Internal container
-- Domain: cloud.thonbecker.biz
-- Trusted proxies configured for Nginx
-
-## Database Configuration
-
-**Engine:** MariaDB 10.11 (local container)
-**Host:** db (Docker internal network)
-**Database:** nextcloud
-**User:** nextcloud
-**Connection:** Docker internal network (no external exposure)
-**Backups:** Manual via docker compose exec or maintenance script
-
-**Note:** Migrated from external Lightsail managed database to local MariaDB container in January 2026 for cost savings and reduced latency.
+- `/var/lib/nextcloud/app` → `/var/www/html` (application files)
+- `/var/lib/nextcloud/data/data` → `/var/www/html/data` (user files)
+- `/var/lib/nextcloud/mysql` → `/var/lib/mysql` (MariaDB data)
+- `/var/lib/personal-website/videos` → `/app/videos` (video processing)
 
 ## Installed Nextcloud Apps
 
 - Calendar (CalDAV sync)
 - Contacts (CardDAV sync)
 - Photos (timeline view)
-- Recognize (AI face/object detection)
 - Nextcloud Office (Collabora Online - document editing)
+- Files Antivirus (ClamAV integration)
 - Files External (S3 storage integration)
-
-## External Storage (S3)
-
-**Mount Point:** `/Cloud Storage`
-**Storage Type:** Amazon S3 (Lightsail bucket)
-**Region:** us-east-1
-
-Used for cloud backup and overflow storage. Files can be moved between local storage and S3 within the Nextcloud interface.
-
-## Sync Clients
-
-**iOS:**
-- Calendar sync via CalDAV
-- Contacts sync via CardDAV
-- Photos app for mobile uploads
-
-**Desktop:**
-- Nextcloud desktop client configured
-- Sync folder: Local → Cloud
-
-**MultCloud:**
-- Configured for cloud-to-cloud transfers
-- Used for Google Drive migration
-
-## Backup Strategy
-
-**Automated Lightsail snapshots:**
-- Instance snapshots: Manual as needed
-- Disk snapshots: Available for quick recovery
-- Database backups: Daily automated by Lightsail
-
-**Retention:**
-- Keep disk snapshots after major changes
-- Clean up old snapshots after verification
-
-## Maintenance
-
-**Regular updates:**
-```bash
-cd ~/nextcloud-aws
-docker compose pull
-docker compose up -d
-```
-
-**Maintenance script:**
-```bash
-cd ~/nextcloud-aws
-./scripts/maintenance.sh
-```
-
-**Certificate renewal:** Automatic via Certbot cron
 
 ## Performance Settings
 
 **PHP:**
-- Memory limit: 4G (optimized for 8 GB instance)
+- Memory limit: 4G
 - Upload limit: 10G
 - Execution time: 3600s
 - Opcache: Enabled (512 MB)
@@ -174,79 +94,54 @@ cd ~/nextcloud-aws
 **Redis:**
 - File locking and caching enabled
 
-**tmpfs:**
-- 4 GB for temporary files (improved performance)
+## Backup Strategy
+
+**Automated S3 backups (daily at 2:00 AM):**
+- MariaDB → `s3://${S3_DB_BACKUP_BUCKET}/mariadb/`
+- PostgreSQL → `s3://${S3_DB_BACKUP_BUCKET}/postgres/`
+- Vaultwarden SQLite → `s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/`
+- 3 local copies retained in `/var/lib/nextcloud/data/backups/`
+- S3 objects expire after 7 days (CDK lifecycle rule)
+
+**Instance snapshots:** Manual as needed via Lightsail console
+
+## Monitoring
+
+**Netdata** (native systemd service at status.thonbecker.biz):
+- HTTP health checks for all services (via localhost)
+- Alerts via AWS SNS → email
+- Config in `netdata/`, symlinked to `/etc/netdata/`
+
+**Health checks:**
+- Docker container health: `/status.php`
+- Disk usage: `df -h /`
+- Container stats: `docker stats`
+
+**Logs:**
+- Nginx: `/var/log/nginx/`
+- Docker: `docker compose logs`
+- Nextcloud: Via OCC commands
+- Backups: `/var/lib/nextcloud/data/backups/cron.log`
 
 ## GitHub Actions
 
 **Workflow:** `.github/workflows/deploy.yml`
 
-**Triggers:**
-- Push to main branch
-- Manual workflow dispatch
+**Triggers:** Push to main, manual dispatch
 
 **Actions:**
-- Pull latest code on server
-- Pull latest Docker images
-- Restart containers
-- Health check
+1. Pull latest code
+2. Restart Netdata if config changed
+3. Pull latest Docker images
+4. Rebuild Nextcloud app image
+5. Restart changed containers
+6. Reload nginx
+7. Verify all 9 containers running
 
-**Secrets configured:**
-- LIGHTSAIL_HOST: Instance static IP
-- LIGHTSAIL_USER: ubuntu
-- LIGHTSAIL_SSH_KEY: ED25519 key for automated access
-
-## Access Credentials
+## Access
 
 **Admin user:** thonbecker
-**Additional users:** Can be created in Nextcloud admin panel
-
-**App passwords:** Configured for:
-- iOS sync clients
-- Desktop sync client
-- MultCloud integration
-
-## Monitoring
-
-**Health checks:**
-- Docker container health: `/status.php`
-- Disk usage: `df -h /mnt/nextcloud-data`
-- Container stats: `docker stats`
-
-**Logs:**
-- Nginx: `/var/log/nginx/nextcloud_*.log`
-- Docker: `docker compose logs`
-- Nextcloud: Via OCC commands
-
-## Known Issues & Solutions
-
-**iOS sync requires CalDAV/CardDAV redirects:**
-- ✅ Resolved: Nginx handles `.well-known` redirects
-
-**Lightsail disk resizing:**
-- ⚠️ Requires snapshot method (no direct resize)
-- ✅ Completed: 128 GB → 300 GB resize (January 2026)
-
-**Instance upgrade:**
-- ✅ Upgraded: 2 GB RAM → 4 GB RAM (January 2026)
-- ✅ Performance boost for photo/video handling
-
-## Photo & Video Optimizations
-
-**Performance improvements for large photo collections:**
-- PHP memory increased to 4G
-- Opcache enabled for faster page loads
-- Preview generation script available: `./scripts/generate-previews.sh`
-- Recognize app for AI face/object detection
-- S3 external storage for cloud backup
-
-**See:** [docs/PHOTO-VIDEO-OPTIMIZATION.md](docs/PHOTO-VIDEO-OPTIMIZATION.md) for complete guide
-
-## Future Considerations
-
-- Monitor storage usage as photo collection grows (currently ~26 GB available on block storage)
-- Can expand block storage to 512 GB if needed (~$50/month)
-- Consider 16 GB RAM upgrade if performance degrades with heavy usage
+**SSH:** `ssh -i ~/.ssh/lightsail.pem ubuntu@18.213.161.133`
 
 ## Support Resources
 
@@ -256,7 +151,7 @@ cd ~/nextcloud-aws
 
 ---
 
-**Last updated:** January 27, 2026
-**Instance:** 8 GB RAM, 2 vCPU
-**Storage:** 300 GB local + S3 external
+**Last updated:** March 2026
+**Instance:** 16 GB RAM, 4 vCPU
+**Storage:** Root filesystem + S3
 **Status:** Production

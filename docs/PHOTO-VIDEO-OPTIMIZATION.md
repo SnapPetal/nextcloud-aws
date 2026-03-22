@@ -1,12 +1,12 @@
 # Photo & Video Optimization Guide
 
-This guide covers optimizing Nextcloud for handling large photo and video collections on your 8 GB RAM / 2 vCPU instance.
+This guide covers optimizing Nextcloud for handling large photo and video collections on your 16 GB RAM / 4 vCPU instance.
 
 ## Current Optimizations
 
 ### Hardware
-- **Instance**: 8 GB RAM, 2 vCPU
-- **Storage**: 300 GB SSD + S3 external storage
+- **Instance**: 16 GB RAM, 4 vCPU
+- **Storage**: Root filesystem + S3 external storage
 - **Database**: Local MariaDB container
 
 ### Software Configuration
@@ -57,67 +57,9 @@ This ensures new photos automatically get thumbnails within 15 minutes of upload
 ### 2. Face Recognition via Recognize App
 Automatically detect and group faces in your photo collection using AI.
 
-**One-time setup (installs Recognize app + runs initial scan):**
-```bash
-# SSH to your server
-ssh ubuntu@<your-ip>
-cd ~/nextcloud-aws
-./scripts/setup-face-recognition.sh
-```
+**Note:** The Recognize app has been removed in favor of Ente Photos for photo management.
 
-This interactive script:
-- Installs the Recognize app (AI face detection engine)
-- Downloads AI models for face recognition
-- Runs initial face classification on all photos
-- Shows how to set up automatic processing for new photos
-
-**What happens during initial scan:**
-- Scans all your photos for faces
-- Groups similar faces together
-- Takes several hours for large collections (157 GB = possibly overnight)
-- CPU intensive but runs in background
-- Your 4 GB instance handles it fine
-
-**After setup - Using face recognition:**
-
-1. **View recognized faces:**
-   - Go to https://cloud.thonbecker.biz/apps/photos
-   - Browse by People/Faces
-   - See all detected faces grouped by similarity
-
-2. **Name people:**
-   - Click on a face cluster
-   - Assign a name to the person
-   - All photos with that face are tagged
-
-3. **Merge duplicate clusters:**
-   - If same person appears in multiple clusters
-   - Select and merge them
-   - Improves accuracy over time
-
-**Automatic face recognition for NEW photos:**
-Add to crontab to process new photos nightly:
-```bash
-# Edit crontab
-crontab -e
-
-# Add this line (runs every night at 2 AM):
-0 2 * * * cd ~/nextcloud-aws && docker compose exec -u www-data app php occ recognize:classify >> /tmp/recognize.log 2>&1
-```
-
-**Monitor progress:**
-```bash
-# View face recognition logs
-tail -f /tmp/recognize.log
-
-# Check what's happening
-docker compose logs -f app | grep -i recognize
-
-# Check resource usage during processing
-docker stats
-```
-
-**Performance expectations (8 GB RAM / 2 vCPU instance):**
+**Performance expectations (16 GB RAM / 4 vCPU instance):**
 - Initial scan: Several hours for large collections
 - Incremental scans: 5-15 minutes for new photos
 - Accuracy: Good (same as high-end servers)
@@ -237,7 +179,7 @@ docker compose exec -u www-data app php occ config:system:delete enabledPreviewP
 **Option 4: Command Line (Advanced)**
 ```bash
 # Using rsync if you have SSH access to both locations
-rsync -avz --progress /path/to/photos/ ubuntu@your-ip:/mnt/nextcloud-data/data/username/files/Photos/
+rsync -avz --progress /path/to/photos/ ubuntu@your-ip:/var/lib/nextcloud/data/data/username/files/Photos/
 
 # Then scan files
 ssh ubuntu@your-ip
@@ -263,7 +205,7 @@ docker compose exec -u www-data app php occ preview:generate-all --dry-run
 # On your Lightsail instance
 docker stats
 htop  # or top
-df -h /mnt/nextcloud-data
+df -h /var/lib/nextcloud/data
 ```
 
 ## Troubleshooting
@@ -299,7 +241,7 @@ docker stats
 
 ## Expected Performance
 
-With your 8 GB RAM / 2 vCPU setup:
+With your 16 GB RAM / 4 vCPU setup:
 
 - **Photo browsing**: Fast with generated previews
 - **Video playback**: Works well with MP4/H.264 format
@@ -333,13 +275,9 @@ If you need even better performance:
 ```bash
 # Setup scripts (one-time)
 ./scripts/setup-auto-previews.sh       # Configure automatic thumbnails
-./scripts/setup-face-recognition.sh    # Configure face recognition
 
 # Generate all previews
 ./scripts/generate-previews.sh
-
-# Run face recognition
-docker compose exec -u www-data app php occ recognize:classify
 
 # Scan new files
 docker compose exec -u www-data app php occ files:scan --all
@@ -352,7 +290,6 @@ docker compose restart
 
 # Check logs
 docker compose logs -f app
-tail -f /tmp/recognize.log            # Face recognition logs
 tail -f /tmp/preview-generate.log     # Preview generation logs
 
 # Check resource usage
@@ -362,14 +299,13 @@ docker stats
 ## Recommended Workflow
 
 1. Set up automatic preview generation: `./scripts/setup-auto-previews.sh`
-2. Upload photos via desktop client or MultCloud
+2. Upload photos via desktop client
 3. Run preview generation once uploaded: `./scripts/generate-previews.sh`
-4. Set up face recognition: `./scripts/setup-face-recognition.sh`
-5. Name faces in Photos app
-6. Set up cron jobs for automatic processing
-7. Use S3 Cloud Storage for backups and archives
+4. Set up cron jobs for automatic processing
+5. Use S3 Cloud Storage for backups and archives
+6. Use Ente Photos for photo management and face recognition
 
 ---
 
-**Last updated:** January 27, 2026
-**Instance specs:** 8 GB RAM, 2 vCPU, 300 GB local storage + S3
+**Last updated:** March 2026
+**Instance specs:** 16 GB RAM, 4 vCPU, root filesystem + S3

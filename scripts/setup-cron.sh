@@ -40,18 +40,6 @@ else
     echo -e "${GREEN}Cron job added!${NC}"
 fi
 
-# Also add face recognition cron if Recognize app is installed
-RECOGNIZE_CMD="cd $HOME/nextcloud-aws && docker compose exec -u www-data -T app php occ recognize:classify >> /tmp/recognize.log 2>&1"
-RECOGNIZE_LINE="0 5 * * * $RECOGNIZE_CMD"
-
-if crontab -l 2>/dev/null | grep -q "recognize:classify"; then
-    echo -e "${BLUE}Face recognition cron job already exists.${NC}"
-else
-    echo -e "${YELLOW}Adding face recognition cron job (runs daily at 5 AM)...${NC}"
-    (crontab -l 2>/dev/null; echo "$RECOGNIZE_LINE") | crontab -
-    echo -e "${GREEN}Face recognition cron job added!${NC}"
-fi
-
 echo ""
 echo -e "${GREEN}Cron setup complete!${NC}"
 echo ""
@@ -60,5 +48,4 @@ crontab -l 2>/dev/null | grep -v "^#" | grep -v "^$" || echo "(empty)"
 echo ""
 echo -e "${BLUE}Notes:${NC}"
 echo "  - Nextcloud background jobs run every 5 minutes"
-echo "  - Face recognition runs daily at 5 AM"
-echo "  - Logs: /tmp/nextcloud-cron.log, /tmp/recognize.log"
+echo "  - Logs: /tmp/nextcloud-cron.log"
