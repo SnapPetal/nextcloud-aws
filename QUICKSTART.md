@@ -223,7 +223,6 @@ This provides a menu for:
 ## Need Help?
 
 - Check the full [README.md](README.md)
-- Review [CloudFront/ALB Setup Guide](docs/CLOUDFRONT-ALB-SETUP.md) if you want SSL at AWS level
 - Check logs: `docker compose logs -f`
 
 ## Your Nextcloud URLs
