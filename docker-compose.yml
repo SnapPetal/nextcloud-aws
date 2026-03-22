@@ -165,6 +165,8 @@ services:
       - PERSONAL_DB_USERNAME=${PERSONAL_DB_USERNAME}
       - PERSONAL_DB_PASSWORD=${PERSONAL_DB_PASSWORD}
       - PERSONAL_PERENUAL_API_KEY=${PERSONAL_PERENUAL_API_KEY}
+    volumes:
+      - /var/lib/personal-website/videos:/app/videos
     networks:
       - nextcloud-net
 
