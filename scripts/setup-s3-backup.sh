@@ -91,7 +91,7 @@ fi
 
 # Set up cron job for daily backups at 2 AM
 SCRIPT_PATH="${HOME}/nextcloud-aws/scripts/backup-to-s3.sh"
-CRON_CMD="0 2 * * * ${SCRIPT_PATH} >> /mnt/nextcloud-data/backups/cron.log 2>&1"
+CRON_CMD="0 2 * * * ${SCRIPT_PATH} >> /var/lib/nextcloud/data/backups/cron.log 2>&1"
 
 chmod +x "$SCRIPT_PATH"
 
@@ -111,7 +111,7 @@ echo -e "${GREEN}=========================================${NC}"
 echo ""
 echo "Backups will:"
 echo "  - Run daily at 2:00 AM"
-echo "  - Save locally to /mnt/nextcloud-data/backups/"
+echo "  - Save locally to /var/lib/nextcloud/data/backups/"
 echo "  - Keep the last 3 local copies per database"
 echo "  - Upload to:"
 echo "      s3://${DB_BACKUP_BUCKET}/mariadb/   (Nextcloud MariaDB)"
@@ -122,4 +122,4 @@ echo "To run a backup manually:"
 echo "  ./scripts/backup-to-s3.sh"
 echo ""
 echo "To check cron logs:"
-echo "  tail -f /mnt/nextcloud-data/backups/cron.log"
+echo "  tail -f /var/lib/nextcloud/data/backups/cron.log"

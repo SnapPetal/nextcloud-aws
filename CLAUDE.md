@@ -62,7 +62,7 @@ Nine containers in docker-compose.yml:
 **Vaultwarden:**
 - **vaultwarden** — Bitwarden-compatible password manager (vaultwarden/server), binds 127.0.0.1:3002 (proxied at vault.thonbecker.biz)
 
-**Storage split:** Root filesystem holds app files (`/var/lib/nextcloud/app`) and DB (`/var/lib/nextcloud/mysql`). A 300 GB Lightsail block storage volume at `/mnt/nextcloud-data` holds user data and backups.
+**Storage:** All data lives on the root filesystem under `/var/lib/nextcloud/` — app files (`/var/lib/nextcloud/app`), DB (`/var/lib/nextcloud/mysql`), and user data + backups (`/var/lib/nextcloud/data`). No block storage volume attached.
 
 ## Nextcloud App Notes
 
@@ -203,7 +203,7 @@ aws sns publish --topic-arn "$SNS_ARN" --message "test" --subject "test"
 - PostgreSQL (Ente) → `s3://${S3_DB_BACKUP_BUCKET}/postgres/`
 - SQLite (Vaultwarden) → `s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/`
 
-Keeps last 3 local copies in `/mnt/nextcloud-data/backups/`. Cron log at `/mnt/nextcloud-data/backups/cron.log`.
+Keeps last 3 local copies in `/var/lib/nextcloud/data/backups/`. Cron log at `/var/lib/nextcloud/data/backups/cron.log`.
 
 ## CI/CD
 

@@ -105,7 +105,7 @@ scan_files() {
 }
 
 backup_database() {
-    BACKUP_DIR="/mnt/nextcloud-data/backups"
+    BACKUP_DIR="/var/lib/nextcloud/data/backups"
     BACKUP_FILE="$BACKUP_DIR/nextcloud-db-$(date +%Y%m%d-%H%M%S).sql"
 
     echo -e "${YELLOW}Creating database backup...${NC}"
@@ -143,14 +143,14 @@ backup_database() {
 }
 
 backup_files() {
-    BACKUP_DIR="/mnt/nextcloud-data/backups"
+    BACKUP_DIR="/var/lib/nextcloud/data/backups"
     BACKUP_FILE="$BACKUP_DIR/nextcloud-files-$(date +%Y%m%d-%H%M%S).tar.gz"
 
     echo -e "${YELLOW}Creating file backup (this may take a while)...${NC}"
     sudo mkdir -p "$BACKUP_DIR"
 
     sudo tar -czf "$BACKUP_FILE" \
-        -C /mnt/nextcloud-data \
+        -C /var/lib/nextcloud/data \
         --exclude='backups' \
         nextcloud data
 
@@ -165,10 +165,10 @@ backup_files() {
 
 check_disk() {
     echo -e "${GREEN}Disk Usage:${NC}"
-    df -h /mnt/nextcloud-data
+    df -h /var/lib/nextcloud/data
     echo ""
     echo -e "${GREEN}Data Directory Breakdown:${NC}"
-    sudo du -sh /mnt/nextcloud-data/* | sort -h
+    sudo du -sh /var/lib/nextcloud/data/* | sort -h
 }
 
 clear_cache() {

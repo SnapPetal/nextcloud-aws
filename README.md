@@ -100,7 +100,7 @@ sudo certbot renew --dry-run
 - PostgreSQL (Ente) → S3
 - SQLite (Vaultwarden) → S3
 
-Keeps last 3 local copies in `/mnt/nextcloud-data/backups/`.
+Keeps last 3 local copies in `/var/lib/nextcloud/data/backups/`.
 
 ## CI/CD
 
@@ -124,16 +124,15 @@ Dependabot checks weekly for GitHub Actions and Docker base image updates.
 | Resource | Specification | Cost |
 |----------|--------------|------|
 | Lightsail Instance | 16 GB RAM, 4 vCPU | $80/mo |
-| Block Storage | 300 GB SSD | $30/mo |
+| Root Disk | 320 GB SSD (included) | $0 |
 | Static IP | IPv4 | Free |
 | SSL Certificates | Let's Encrypt (Certbot) | Free |
 | RDS (Personal Website) | PostgreSQL | Variable |
-| **Total** | | **~$110/mo + RDS** |
+| **Total** | | **~$80/mo + RDS** |
 
 ### Storage
 
-- **Root filesystem** — App files (`/var/lib/nextcloud/app`), databases (`/var/lib/nextcloud/mysql`)
-- **Block storage** (300 GB at `/mnt/nextcloud-data`) — User data, backups
+- **Root filesystem** — All data under `/var/lib/nextcloud/`: app files, databases, user data, and backups
 
 ### Nginx
 

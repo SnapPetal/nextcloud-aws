@@ -14,7 +14,7 @@ set -e
 cd ~/nextcloud-aws || exit 1
 source .env
 
-BACKUP_DIR="/mnt/nextcloud-data/backups"
+BACKUP_DIR="/var/lib/nextcloud/data/backups"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 MARIADB_FILE="nextcloud-db-${TIMESTAMP}.sql.gz"
 PG_FILE="ente-db-${TIMESTAMP}.sql.gz"
