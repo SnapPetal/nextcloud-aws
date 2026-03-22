@@ -147,6 +147,49 @@ services:
     networks:
       - nextcloud-net
 
+  personal-postgres:
+    image: postgres:15
+    container_name: personal-postgres
+    restart: unless-stopped
+    volumes:
+      - personal-postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${PERSONAL_DB_USERNAME}
+      - POSTGRES_PASSWORD=${PERSONAL_DB_PASSWORD}
+      - POSTGRES_DB=personal
+    networks:
+      - nextcloud-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PERSONAL_DB_USERNAME} -d personal"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  personal-website:
+    image: public.ecr.aws/p0w8z2j2/personal:latest
+    container_name: personal-website
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3003:8080"
+    environment:
+      - AWS_ACCESS_KEY_ID=${PERSONAL_AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${PERSONAL_AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${PERSONAL_AWS_REGION}
+      - NEXTCLOUD_USERNAME=${PERSONAL_NEXTCLOUD_USERNAME}
+      - NEXTCLOUD_APP_PASSWORD=${PERSONAL_NEXTCLOUD_APP_PASSWORD}
+      - COGNITO_USER_POOL_ID=${PERSONAL_COGNITO_USER_POOL_ID}
+      - COGNITO_CLIENT_ID=${PERSONAL_COGNITO_CLIENT_ID}
+      - COGNITO_CLIENT_SECRET=${PERSONAL_COGNITO_CLIENT_SECRET}
+      - DB_USERNAME=${PERSONAL_DB_USERNAME}
+      - DB_PASSWORD=${PERSONAL_DB_PASSWORD}
+      - PERENUAL_API_KEY=${PERSONAL_PERENUAL_API_KEY}
+    depends_on:
+      personal-postgres:
+        condition: service_healthy
+    networks:
+      - nextcloud-net
+
   vaultwarden:
     image: vaultwarden/server:latest
     container_name: vaultwarden
@@ -177,4 +220,5 @@ networks:
 volumes:
   clamav-data:
   ente-postgres-data:
+  personal-postgres-data:
   vaultwarden-data:

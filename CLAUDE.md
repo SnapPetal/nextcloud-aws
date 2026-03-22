@@ -13,13 +13,14 @@ Infrastructure-as-configuration repository for a self-hosted Nextcloud instance 
 ```
 Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bridge (nextcloud-net)
   cloud.thonbecker.biz        → 127.0.0.1:8080 (Nextcloud)
+  www.thonbecker.biz          → 127.0.0.1:3003 (Personal Website)
   photos.thonbecker.biz       → 127.0.0.1:3000 (Ente Web)
   photos-api.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
   status.thonbecker.biz       → 127.0.0.1:19999 (Netdata)
   vault.thonbecker.biz        → 127.0.0.1:3002 (Vaultwarden)
 ```
 
-All five domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). Incoming IPs seen by nginx are Cloudflare ranges — trusted proxies are configured for RFC-1918 ranges which covers the nginx→container hop. Certbot uses the `nginx` authenticator (HTTP-01 challenge), which works through Cloudflare proxy.
+All six domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). Incoming IPs seen by nginx are Cloudflare ranges — trusted proxies are configured for RFC-1918 ranges which covers the nginx→container hop. Certbot uses the `nginx` authenticator (HTTP-01 challenge), which works through Cloudflare proxy.
 
 **Cloudflare feature settings:**
 
@@ -39,7 +40,7 @@ All five domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles D
 | Rocket Loader | ❌ Off | Breaks Nextcloud's JavaScript — never enable |
 | Mirage / Polish | ❌ Off | Can corrupt file transfers and break previews |
 
-Eight containers in docker-compose.yml:
+Ten containers in docker-compose.yml:
 
 **Nextcloud:**
 - **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor), binds 127.0.0.1:8080
@@ -54,6 +55,10 @@ Eight containers in docker-compose.yml:
 - **ente-museum** — Ente API server, binds 127.0.0.1:8082 (proxied at photos-api.thonbecker.biz)
 - **ente-postgres** — PostgreSQL 15 for Ente metadata
 - **ente-web** — Ente Photos web app, binds 127.0.0.1:3000 (proxied at photos.thonbecker.biz)
+
+**Personal Website:**
+- **personal-website** — Personal web app from public ECR (`public.ecr.aws/p0w8z2j2/personal`), binds 127.0.0.1:3003 (proxied at www.thonbecker.biz)
+- **personal-postgres** — PostgreSQL 15 for personal website data
 
 **Vaultwarden:**
 - **vaultwarden** — Bitwarden-compatible password manager (vaultwarden/server), binds 127.0.0.1:3002 (proxied at vault.thonbecker.biz)
@@ -122,7 +127,7 @@ sudo certbot renew             # force manual renewal
 
 ## Configuration
 
-`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET, S3_DB_BACKUP_BUCKET, and ENTE_* variables for Ente Photos (Postgres, S3, JWT, SMTP).
+`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET, S3_DB_BACKUP_BUCKET, ENTE_* variables for Ente Photos (Postgres, S3, JWT, SMTP), and PERSONAL_* variables for the personal website (AWS Bedrock, Cognito, Nextcloud CalDAV, Perenual API).
 
 PHP is tuned for 8 GB RAM: `PHP_MEMORY_LIMIT=4G`, `PHP_UPLOAD_LIMIT=10G`, Opcache 512 MB. MariaDB runs with `--transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW` as Nextcloud requires.
 
@@ -132,6 +137,7 @@ All five virtual host configs live in `nginx/` and are symlinked into `/etc/ngin
 
 ```
 nginx/nextcloud                  → cloud.thonbecker.biz
+nginx/www.thonbecker.biz         → www.thonbecker.biz
 nginx/status.thonbecker.biz      → status.thonbecker.biz
 nginx/photos.thonbecker.biz      → photos.thonbecker.biz
 nginx/photos-api.thonbecker.biz  → photos-api.thonbecker.biz
@@ -202,7 +208,7 @@ Keeps last 3 local copies in `/mnt/nextcloud-data/backups/`. Cron log at `/mnt/n
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, reloads nginx, then verifies all 8 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
+`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, reloads nginx, then verifies all 10 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
 **Deployment safety notes:**
 - `docker compose up -d` only restarts containers whose image or config actually changed — services with unchanged images are not touched
@@ -231,7 +237,7 @@ aws-vault exec thonbecker -- <command>
 - `supervisord.conf` runs both apache2 and cron inside the app container (runs as root explicitly to suppress supervisord warning)
 - Nginx runs on the host (not containerized) handling SSL termination and reverse proxy
 - Netdata runs on the host (not containerized) as a native systemd service for true host-level observability
-- All five domains are Cloudflare-proxied; nginx sees Cloudflare IPs, not real client IPs
+- All six domains are Cloudflare-proxied; nginx sees Cloudflare IPs, not real client IPs
 - Trusted proxies configured for RFC-1918 ranges to handle Nginx forwarding
 - `nextcloud-app` has `extra_hosts: cloud.thonbecker.biz:host-gateway` so internal server-to-self requests route via the Docker bridge to nginx rather than through Cloudflare
 - All nginx virtual host configs are version-controlled in `nginx/` — symlinked from `/etc/nginx/sites-enabled/`
