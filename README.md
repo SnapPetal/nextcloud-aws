@@ -1,425 +1,201 @@
-# Nextcloud on AWS Lightsail with Docker
+# Self-Hosted Services on AWS Lightsail
 
-Production-ready Nextcloud deployment on AWS Lightsail using Docker, with local MariaDB database and Redis caching.
+Multi-service self-hosted stack on AWS Lightsail using Docker, Nginx, and Cloudflare.
 
 ## Architecture
 
 ```
-Internet → cloud.thonbecker.biz (HTTPS) → Lightsail Instance → Nextcloud + Redis + MariaDB
-                                                              → ClamAV (antivirus scanning)
-                                                              → Uptime Kuma (monitoring)
+Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bridge (nextcloud-net)
+  cloud.thonbecker.biz        → 127.0.0.1:8080 (Nextcloud)
+  thonbecker.biz              → 127.0.0.1:3003 (Personal Website)
+  photos.thonbecker.biz       → 127.0.0.1:3000 (Ente Web)
+  photos-api.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
+  status.thonbecker.biz       → 127.0.0.1:19999 (Netdata)
+  vault.thonbecker.biz        → 127.0.0.1:3002 (Vaultwarden)
 ```
 
-### Components
-- **Nextcloud App**: Official `nextcloud:apache` Docker image
-- **Redis Cache**: Lightweight caching for improved performance and file locking
-- **Database**: Local MariaDB 10.11 container (no external database needed)
-- **ClamAV**: Antivirus scanning for uploaded files
-- **Uptime Kuma**: Self-hosted uptime monitoring with status page
-- **Storage**: Separate Lightsail block storage volume (300 GB) for persistent data
+### Services
 
-## Features
+**Nextcloud** — Self-hosted cloud storage and collaboration
+- **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor)
+- **nextcloud-db** — MariaDB 10.11
+- **nextcloud-redis** — Redis Alpine, caching + file locking
+- **nextcloud-clamav** — ClamAV antivirus scanning for uploaded files
 
-- Local MariaDB database for low latency
-- Redis caching for optimal performance
-- Automated GitHub Actions deployment
-- SSL/TLS via Let's Encrypt (Certbot)
-- Persistent storage on separate volume
-- ClamAV antivirus scanning for uploaded files
-- Uptime Kuma monitoring with public status page
-- Automated daily S3 database backups with 3-backup retention
-- Health checks and monitoring
-- Interactive maintenance scripts
+**Ente Photos** — End-to-end encrypted photo storage
+- **ente-museum** — Ente API server
+- **ente-postgres** — PostgreSQL 15
+- **ente-web** — Ente Photos web app
 
-## Quick Start
+**Personal Website** — [thonbecker.biz](https://thonbecker.biz)
+- **personal-website** — Spring Boot app from public ECR, uses external RDS PostgreSQL
 
-**See [QUICKSTART.md](QUICKSTART.md)** for step-by-step setup instructions tailored to your domain: `cloud.thonbecker.biz`
+**Vaultwarden** — Self-hosted Bitwarden-compatible password manager
+- **vaultwarden** — Password vault with browser extension, mobile, and desktop client support
+
+**Netdata** — Host-level observability (native systemd service, not containerized)
+- Alerts via AWS SNS → email
+- HTTP health checks for all services (localhost)
+
+All six domains are Cloudflare-proxied. SSL terminates at nginx via Certbot.
 
 ## Prerequisites
 
 1. AWS Lightsail account
-2. Domain name: `thonbecker.biz` (configured)
+2. Domain: `thonbecker.biz` with Cloudflare DNS
 3. GitHub account (for automated deployments)
 
-## Deployment Summary
+## Quick Start
 
-1. **Create Resources** (15 min)
-   - Lightsail instance: Ubuntu 22.04, 8 GB RAM ($44/month)
-   - Block storage: 300 GB ($30/month)
-   - S3 storage: ~$0.023/GB/month (optional, for external storage)
-   - Database: Included (local MariaDB container)
-
-2. **Configure DNS** (5 min)
-   - Point `cloud.thonbecker.biz` to instance IP
-
-3. **Run Setup Script** (10 min)
-   - Installs Docker, mounts storage, configures environment
-
-4. **Deploy Nextcloud** (5 min)
-   - `docker compose up -d`
-
-5. **Install SSL** (5 min)
-   - Certbot for Let's Encrypt certificate
-
-**Total time: ~40 minutes**
-**Total cost: ~$74/month** (plus S3 if used)
-
-## Management Commands
-
-### Using the Maintenance Script (Recommended)
+**See [QUICKSTART.md](QUICKSTART.md)** for step-by-step setup instructions.
 
 ```bash
-cd ~/nextcloud-aws
-./scripts/maintenance.sh
-```
+# Clone and configure
+git clone https://github.com/SnapPetal/nextcloud-aws.git
+cd nextcloud-aws
+cp .env.example .env
+# Edit .env with your values
 
-Interactive menu provides:
-- View logs
-- Container management
-- Updates
-- Backups
-- Database operations
-- Disk usage monitoring
-
-### Manual Commands
-
-#### Container Management
-```bash
-# View logs
-docker compose logs -f
-
-# Restart containers
-docker compose restart
-
-# Update to latest Nextcloud
-docker compose pull
+# Deploy
 docker compose up -d
 ```
 
-#### Nextcloud OCC Commands
-```bash
-# Check status
-docker compose exec -u www-data app php occ status
+## Management
 
-# Maintenance mode
+### Common Commands
+
+```bash
+# Build and deploy
+docker compose up -d
+docker compose build --pull app
+
+# Nextcloud OCC commands (always as www-data)
+docker compose exec -u www-data app php occ status
 docker compose exec -u www-data app php occ maintenance:mode --on
 docker compose exec -u www-data app php occ maintenance:mode --off
 
-# Add missing database indices
-docker compose exec -u www-data app php occ db:add-missing-indices
+# Interactive maintenance menu
+./scripts/maintenance.sh
 
-# Scan files
-docker compose exec -u www-data app php occ files:scan --all
+# Update (pull latest images + rebuild app)
+./scripts/update-server.sh
+
+# Database backup to S3 (MariaDB + PostgreSQL + Vaultwarden SQLite)
+./scripts/backup-to-s3.sh
+
+# Reload nginx after config changes
+sudo systemctl reload nginx
+
+# Netdata
+sudo systemctl restart netdata
+
+# SSL certificate renewal
+sudo certbot renew --dry-run
 ```
 
 ## Backups
 
-### Automated S3 Backups
+`scripts/backup-to-s3.sh` runs nightly at 02:00 via cron:
+- MariaDB → S3
+- PostgreSQL (Ente) → S3
+- SQLite (Vaultwarden) → S3
 
-Database backups run daily via cron, syncing to S3 with 3-backup local retention.
+Keeps last 3 local copies in `/mnt/nextcloud-data/backups/`.
 
-**Setup** (one-time):
-```bash
-./scripts/setup-s3-backup.sh
-```
+## CI/CD
 
-This installs the AWS CLI, configures your S3 bucket in `.env`, and adds a daily cron job.
+Push to `main` triggers GitHub Actions deployment:
+1. Pulls latest code on server
+2. Restarts Netdata if config changed
+3. Pulls latest Docker images
+4. Rebuilds Nextcloud app image
+5. Restarts changed containers
+6. Reloads nginx
+7. Verifies all 9 containers are running
 
-**Manual backup**:
-```bash
-./scripts/backup-to-s3.sh
-```
+Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
-**How it works** (`scripts/backup-to-s3.sh`):
-1. Dumps MariaDB via `docker compose exec` and compresses with gzip
-2. Retains only the last 3 backups locally
-3. Syncs backup files to `s3://$S3_BUCKET/backups/`
+Dependabot checks weekly for GitHub Actions and Docker base image updates.
 
-Backups are stored at `/mnt/nextcloud-data/backups/` and logged to `backup.log` in the same directory.
+## Infrastructure
 
-## GitHub Actions Automated Deployment
-
-### Setup
-
-1. Generate SSH key on your Lightsail instance:
-
-```bash
-ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github-actions -N ""
-cat ~/.ssh/github-actions.pub >> ~/.ssh/authorized_keys
-cat ~/.ssh/github-actions  # Copy this
-```
-
-2. Add GitHub repository secrets:
-   - Go to: https://github.com/SnapPetal/nextcloud-aws/settings/secrets/actions
-   - Add:
-     - `LIGHTSAIL_HOST`: Your instance static IP
-     - `LIGHTSAIL_USER`: `ubuntu`
-     - `LIGHTSAIL_SSH_KEY`: The private key from step 1
-
-### Usage
-
-Any push to `main` branch will:
-- Pull latest changes on server
-- Pull latest Docker images
-- Restart containers
-- Run health checks
-
-Or trigger manually:
-- Go to Actions tab → Run workflow
-
-## Monitoring
-
-### Disk Usage
-```bash
-# User files (block storage)
-df -h /mnt/nextcloud-data
-
-# Application data (root filesystem)
-df -h /var/lib/nextcloud
-du -sh /var/lib/nextcloud/*
-```
-
-### Container Resources
-```bash
-docker stats
-```
-
-### Uptime Kuma
-
-Self-hosted uptime monitoring for Nextcloud services. Runs on port 3001 (localhost-only by default, exposed externally via Nginx).
-
-**Setup**:
-```bash
-./scripts/setup-kuma.sh
-```
-
-**Status page**: https://status.thonbecker.biz
-
-### Logs
-```bash
-# All containers
-docker compose logs -f
-
-# Just Nextcloud
-docker compose logs -f app
-
-# Just Redis
-docker compose logs -f redis
-```
-
-## Troubleshooting
-
-### Containers won't start
-```bash
-docker compose logs
-docker compose down
-docker compose up -d
-```
-
-### Permission issues
-```bash
-sudo chown -R 33:33 /var/lib/nextcloud/app
-sudo chown -R 33:33 /mnt/nextcloud-data/data
-sudo chown -R 999:999 /var/lib/nextcloud/mysql
-```
-
-### Database connection failed
-- Verify database container is running: `docker compose ps`
-- Check database logs: `docker compose logs db`
-- Test connection from app container:
-  ```bash
-  docker compose exec app mysql -h db -u nextcloud -p
-  ```
-
-### "Untrusted domain" error
-```bash
-docker compose exec -u www-data app php occ config:system:set trusted_domains 0 --value=cloud.thonbecker.biz
-```
-
-### SSL certificate issues
-```bash
-# Renew certificate
-sudo certbot renew
-
-# Force renewal
-sudo certbot renew --force-renewal
-```
-
-## Security Best Practices
-
-1. **Keep updated**:
-   ```bash
-   docker compose pull && docker compose up -d
-   sudo apt update && sudo apt upgrade -y
-   ```
-
-2. **Enable automatic security updates**:
-   ```bash
-   sudo apt install unattended-upgrades -y
-   sudo dpkg-reconfigure -plow unattended-upgrades
-   ```
-
-3. **Firewall rules** (Lightsail console):
-   - SSH (22): Your IP only
-   - HTTP (80): All (for Let's Encrypt challenges)
-   - HTTPS (443): All
-   - Port 3001: Localhost only (Uptime Kuma, exposed externally via Nginx on HTTPS)
-
-4. **Strong passwords**:
-   - Database password (20+ characters)
-   - Nextcloud admin password
-   - Enable 2FA in Nextcloud settings
-
-5. **Regular backups**:
-   - Daily database backups
-   - Weekly Lightsail snapshots
-   - Store critical backups off-site (S3)
-
-## Performance Tuning
-
-For more users or larger files, edit `docker-compose.yml`:
-
-```yaml
-environment:
-  - PHP_MEMORY_LIMIT=1G          # Default: 512M
-  - PHP_UPLOAD_LIMIT=20G         # Default: 10G
-  - APACHE_BODY_LIMIT=21474836480 # Default: 10G
-```
-
-Then restart:
-```bash
-docker compose up -d
-```
-
-## Upgrading Nextcloud
-
-### Minor Updates
-```bash
-docker compose pull
-docker compose up -d
-```
-
-### Major Version Upgrades
-```bash
-# 1. Backup first
-./scripts/maintenance.sh  # Choose backup option
-
-# 2. Enable maintenance mode
-docker compose exec -u www-data app php occ maintenance:mode --on
-
-# 3. Update
-docker compose pull
-docker compose up -d
-
-# 4. Run upgrade
-docker compose exec -u www-data app php occ upgrade
-
-# 5. Disable maintenance mode
-docker compose exec -u www-data app php occ maintenance:mode --off
-```
-
-## Cost Breakdown
-
-Monthly AWS costs:
+### Instance
 
 | Resource | Specification | Cost |
 |----------|--------------|------|
-| Lightsail Instance | 8 GB RAM, 2 vCPU, Ubuntu 22.04 | $44 |
-| Block Storage | 300 GB SSD | $30 |
-| S3 Storage | ~$0.023/GB/month (optional) | Variable |
-| Database | Local MariaDB (included) | $0 |
+| Lightsail Instance | 16 GB RAM, 4 vCPU | $80/mo |
+| Block Storage | 300 GB SSD | $30/mo |
 | Static IP | IPv4 | Free |
-| SSL Certificate | Let's Encrypt | Free |
-| **Total** | | **$74/month + S3** |
+| SSL Certificates | Let's Encrypt (Certbot) | Free |
+| RDS (Personal Website) | PostgreSQL | Variable |
+| **Total** | | **~$110/mo + RDS** |
 
-## Photo & Video Performance
+### Storage
 
-**Current setup optimized for large photo collections:**
-- 8 GB RAM / 2 vCPU instance
-- PHP memory: 4 GB
-- Opcache enabled (512 MB) for faster performance
-- Preview generation scripts included
-- Recognize app for AI-powered face/object detection
-- S3 external storage for cloud backup
+- **Root filesystem** — App files (`/var/lib/nextcloud/app`), databases (`/var/lib/nextcloud/mysql`)
+- **Block storage** (300 GB at `/mnt/nextcloud-data`) — User data, backups
 
-**Features:**
-- Fast photo browsing with automatic thumbnail generation
-- AI face recognition and object detection via Recognize app
-- Video preview support
-- S3 cloud storage integration
-- Mobile app support
+### Nginx
 
-**See:** [docs/PHOTO-VIDEO-OPTIMIZATION.md](docs/PHOTO-VIDEO-OPTIMIZATION.md) for complete optimization guide
+Virtual host configs in `nginx/`, symlinked to `/etc/nginx/sites-enabled/`:
 
-## Scaling Options
-
-**Current instance:** 8 GB RAM, 2 vCPUs ($44/month)
-
-**Further scaling options:**
-
-1. **Upgrade to 16 GB RAM** ($80/month):
-   - Better for heavy concurrent usage
-   - Faster face recognition
-   - Better video transcoding
-
-2. **Expand storage** (via snapshot method):
-   - Current: 300 GB
-   - Can expand to 512 GB (~$50/month) or more
-   - See PRODUCTION-SETUP.md for resize procedure
+```
+nginx/nextcloud                  → cloud.thonbecker.biz
+nginx/www.thonbecker.biz         → thonbecker.biz
+nginx/photos.thonbecker.biz      → photos.thonbecker.biz
+nginx/photos-api.thonbecker.biz  → photos-api.thonbecker.biz
+nginx/status.thonbecker.biz      → status.thonbecker.biz
+nginx/vault.thonbecker.biz       → vault.thonbecker.biz
+```
 
 ## Project Structure
 
 ```
 nextcloud-aws/
 ├── .github/workflows/
-│   └── deploy.yml                    # GitHub Actions deployment
-├── docs/
-│   ├── NGINX-SETUP.md                # Nginx reverse proxy configuration
-│   ├── PHOTO-VIDEO-OPTIMIZATION.md   # Photo/video performance guide
-│   └── CLOUDFRONT-ALB-SETUP.md       # Advanced: CloudFront/ALB (optional)
+│   └── deploy.yml              # GitHub Actions deployment
+├── netdata/
+│   ├── netdata.conf            # Netdata configuration
+│   ├── health_alarm_notify.conf # SNS alert notifications
+│   └── go.d/httpcheck.conf     # HTTP health checks (localhost)
+├── nginx/
+│   ├── nextcloud               # cloud.thonbecker.biz
+│   ├── www.thonbecker.biz      # thonbecker.biz
+│   ├── photos.thonbecker.biz   # photos.thonbecker.biz
+│   ├── photos-api.thonbecker.biz # photos-api.thonbecker.biz
+│   ├── status.thonbecker.biz   # status.thonbecker.biz
+│   └── vault.thonbecker.biz    # vault.thonbecker.biz
 ├── scripts/
-│   ├── setup-server.sh               # Initial server setup
-│   ├── maintenance.sh                # Interactive maintenance menu
-│   ├── generate-previews.sh          # Photo preview generation
-│   ├── setup-auto-previews.sh        # Configure automatic thumbnails
-│   ├── setup-face-recognition.sh     # Configure AI face recognition
-│   ├── backup-to-s3.sh              # Automated database backup to S3
-│   ├── setup-s3-backup.sh           # One-time S3 backup setup
-│   ├── setup-clamav.sh              # ClamAV antivirus setup
-│   ├── setup-kuma.sh                # Uptime Kuma monitoring setup
-│   ├── update-server.sh             # Server update script
-│   ├── safe-reboot.sh               # Safe reboot with service checks
-│   ├── ensure-autostart.sh          # Ensure containers start on boot
-│   ├── setup-notify-push.sh         # Client push notifications setup
-│   ├── setup-cron.sh                # Nextcloud cron job setup
-│   └── fix-admin-warnings.sh        # Fix Nextcloud admin warnings
-├── docker-compose.yml                # Docker Compose configuration
-├── .env.example                      # Environment variables template
-├── PRODUCTION-SETUP.md               # Production infrastructure docs
-├── QUICKSTART.md                     # Quick start guide
-└── README.md                         # This file
+│   ├── backup-to-s3.sh         # Database backup to S3
+│   ├── generate-museum-yaml.sh # Ente Museum config generator
+│   ├── maintenance.sh          # Interactive maintenance menu
+│   ├── setup-ente.sh           # Ente Photos setup (one-time)
+│   ├── setup-server.sh         # Initial server setup
+│   └── update-server.sh        # Server update script
+├── docker-compose.yml          # All 9 containers
+├── Dockerfile                  # Custom Nextcloud image
+├── supervisord.conf            # Apache + cron in app container
+├── .env.example                # Environment variables template
+├── CLAUDE.md                   # Claude Code project instructions
+├── QUICKSTART.md               # Setup guide
+└── README.md                   # This file
+```
+
+## SSH Access
+
+```bash
+ssh -i ~/.ssh/lightsail.pem ubuntu@18.213.161.133
 ```
 
 ## Resources
 
-- **Your Nextcloud**: https://cloud.thonbecker.biz
-- **GitHub Repository**: https://github.com/SnapPetal/nextcloud-aws
-- [Nextcloud Documentation](https://docs.nextcloud.com/)
-- [AWS Lightsail Documentation](https://docs.aws.amazon.com/lightsail/)
-- [Docker Documentation](https://docs.docker.com/)
-
-## Support
-
-For issues:
-1. Check logs: `docker compose logs -f`
-2. Review [Troubleshooting](#troubleshooting) section
-3. Check Nextcloud forums: https://help.nextcloud.com/
-4. Open issue on GitHub
+- **Nextcloud**: https://cloud.thonbecker.biz
+- **Personal Website**: https://thonbecker.biz
+- **Photos**: https://photos.thonbecker.biz
+- **Password Vault**: https://vault.thonbecker.biz
+- **Monitoring**: https://status.thonbecker.biz
+- **GitHub**: https://github.com/SnapPetal/nextcloud-aws
 
 ## License
 
 MIT
-
-## Contributing
-
-Pull requests welcome! Please open an issue first to discuss changes.

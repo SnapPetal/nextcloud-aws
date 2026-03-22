@@ -57,7 +57,7 @@ Nine containers in docker-compose.yml:
 - **ente-web** — Ente Photos web app, binds 127.0.0.1:3000 (proxied at photos.thonbecker.biz)
 
 **Personal Website:**
-- **personal-website** — Personal web app (Spring Boot) from public ECR (`public.ecr.aws/p0w8z2j2/personal`), binds 127.0.0.1:3003 (proxied at thonbecker.biz). Uses external RDS PostgreSQL, not a local container.
+- **personal-website** — Personal web app (Spring Boot) from public ECR (`public.ecr.aws/p0w8z2j2/personal`), binds 127.0.0.1:3003 (proxied at thonbecker.biz). Uses external RDS PostgreSQL, not a local container. Has a bind mount at `/var/lib/personal-website/videos` → `/app/videos` for temporary skateboard video processing.
 
 **Vaultwarden:**
 - **vaultwarden** — Bitwarden-compatible password manager (vaultwarden/server), binds 127.0.0.1:3002 (proxied at vault.thonbecker.biz)
@@ -128,7 +128,7 @@ sudo certbot renew             # force manual renewal
 
 `.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET, S3_DB_BACKUP_BUCKET, ENTE_* variables for Ente Photos (Postgres, S3, JWT, SMTP), and PERSONAL_* variables for the personal website (AWS Bedrock, Cognito, Nextcloud CalDAV, Perenual API).
 
-PHP is tuned for 8 GB RAM: `PHP_MEMORY_LIMIT=4G`, `PHP_UPLOAD_LIMIT=10G`, Opcache 512 MB. MariaDB runs with `--transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW` as Nextcloud requires.
+The Lightsail instance is 4 vCPU / 16 GB RAM. PHP is tuned with `PHP_MEMORY_LIMIT=4G`, `PHP_UPLOAD_LIMIT=10G`, Opcache 512 MB. MariaDB runs with `--transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW` as Nextcloud requires.
 
 ## Nginx
 
@@ -241,3 +241,4 @@ aws-vault exec thonbecker -- <command>
 - `nextcloud-app` has `extra_hosts: cloud.thonbecker.biz:host-gateway` so internal server-to-self requests route via the Docker bridge to nginx rather than through Cloudflare
 - All nginx virtual host configs are version-controlled in `nginx/` — symlinked from `/etc/nginx/sites-enabled/`
 - Netdata configs are version-controlled in `netdata/` — symlinked from `/etc/netdata/` (`netdata.conf`, `health_alarm_notify.conf`, `go.d/httpcheck.conf`)
+- Netdata httpcheck uses localhost URLs (not public domains) to avoid adding load through Cloudflare
