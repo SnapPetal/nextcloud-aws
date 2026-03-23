@@ -57,7 +57,7 @@ Nine containers in docker-compose.yml:
 - **ente-web** — Ente Photos web app, binds 127.0.0.1:3000 (proxied at photos.thonbecker.biz)
 
 **Personal Website:**
-- **personal-website** — Personal web app (Spring Boot) from public ECR (`public.ecr.aws/p0w8z2j2/personal`), binds 127.0.0.1:3003 (proxied at thonbecker.biz). Uses external RDS PostgreSQL, not a local container. Has a bind mount at `/var/lib/personal-website/videos` → `/app/videos` for temporary skateboard video processing.
+- **personal-website** — Personal web app (Spring Boot) from public ECR (`public.ecr.aws/p0w8z2j2/personal`), binds 127.0.0.1:3003 (proxied at thonbecker.biz). Uses external RDS PostgreSQL, not a local container. Has a bind mount at `/var/lib/personal-website/videos` → `/app/videos` for temporary skateboard video processing. nginx configured with `client_max_body_size 100M` (skateboard trick video uploads) and WebSocket upgrade headers (skatetricks-websocket endpoint).
 
 **Vaultwarden:**
 - **vaultwarden** — Bitwarden-compatible password manager (vaultwarden/server), binds 127.0.0.1:3002 (proxied at vault.thonbecker.biz)
