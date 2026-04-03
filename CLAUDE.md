@@ -32,7 +32,7 @@ All six domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DD
 | Always Use HTTPS | ✅ On | Belt-and-suspenders with nginx |
 | TLS 1.3 | ✅ On | nginx supports it |
 | Normalize incoming URLs | ✅ On | Prevents path confusion attacks |
-| WebSockets | ✅ On | Required for Nextcloud Office and Vaultwarden |
+| WebSockets | ✅ On | Required for Nextcloud Office, Client Push (notify_push), and Vaultwarden |
 | Onion Routing | Off | Not needed |
 | Browser Integrity Check | Caution | Can block Nextcloud desktop/mobile sync clients — test after enabling |
 | Hotlink Protection | ❌ Off | Breaks Nextcloud file sharing and public links |
@@ -43,7 +43,7 @@ All six domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DD
 Nine containers in docker-compose.yml:
 
 **Nextcloud:**
-- **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor), binds 127.0.0.1:8080
+- **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor), binds 127.0.0.1:8080 + 127.0.0.1:7867 (notify_push)
 - **nextcloud-db** — MariaDB 10.11, data at /var/lib/nextcloud/mysql
 - **nextcloud-redis** — Redis Alpine, caching + file locking
 - **nextcloud-clamav** — ClamAV antivirus daemon on port 3310
@@ -68,6 +68,9 @@ Nine containers in docker-compose.yml:
 
 **Removed apps (do not reinstall):**
 - **recognize** and **memories** — removed in favor of Ente Photos.
+
+**Client Push (notify_push):**
+The `notify_push` app provides real-time file change notifications to desktop/mobile clients via WebSocket, replacing the default polling behavior. The push daemon binary runs inside the app container via supervisord on port 7867. Nginx proxies `/push/` to this daemon. After deploying, run `occ notify_push:setup https://cloud.thonbecker.biz/push` to configure. If push stops working, check `supervisorctl status notify_push` inside the container and ensure the binary exists at `/var/www/html/custom_apps/notify_push/bin/x86_64/notify_push`.
 
 **Nextcloud Office (bundled Collabora CODE):**
 Apps `richdocuments` + `richdocumentscode` provide in-browser document editing. The following occ config is required (not version-controlled — set manually):

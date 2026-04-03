@@ -34,6 +34,7 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:80"
+      - "127.0.0.1:7867:7867"
     volumes:
       - /var/lib/nextcloud/app:/var/www/html
       - ${DATA_PATH}/data:/var/www/html/data
