@@ -70,7 +70,7 @@ Nine containers in docker-compose.yml:
 - **recognize** and **memories** — removed in favor of Ente Photos.
 
 **Client Push (notify_push):**
-The `notify_push` app provides real-time file change notifications to desktop/mobile clients via WebSocket, replacing the default polling behavior. The push daemon binary runs inside the app container via supervisord on port 7867. Nginx proxies `/push/` to this daemon. After deploying, run `occ notify_push:setup https://cloud.thonbecker.biz/push` to configure. If push stops working, check `supervisorctl status notify_push` inside the container and ensure the binary exists at `/var/www/html/custom_apps/notify_push/bin/x86_64/notify_push`.
+The `notify_push` app provides real-time file change notifications to desktop/mobile clients via WebSocket, replacing the default polling behavior. The push daemon binary runs inside the app container via supervisord on port 7867. Nginx proxies `/push/` to this daemon. After deploying, run `occ notify_push:setup https://cloud.thonbecker.biz/push` to configure. If push stops working, check `docker compose exec app ps aux | grep notify_push` to verify the daemon is running and ensure the binary exists at `/var/www/html/custom_apps/notify_push/bin/x86_64/notify_push`.
 
 **Nextcloud Office (bundled Collabora CODE):**
 Apps `richdocuments` + `richdocumentscode` provide in-browser document editing. The following occ config is required (not version-controlled — set manually):
