@@ -28,7 +28,7 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 - **ente-web** — Ente Photos web app
 
 **Personal Website** — [thonbecker.biz](https://thonbecker.biz)
-- **personal-website** — Spring Boot app from public ECR, uses external RDS PostgreSQL
+- **personal-website** — Spring Boot app from public ECR, uses external RDS PostgreSQL and consumes `PERSONAL_*` plus `SKATETRICKS_*` env vars for skateboard video upload/transcoding
 
 **Vaultwarden** — Self-hosted Bitwarden-compatible password manager
 - **vaultwarden** — Password vault with browser extension, mobile, and desktop client support

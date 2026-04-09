@@ -58,7 +58,7 @@ S3 available for overflow storage if needed.
 - `ente-museum`: Ente API server
 - `ente-postgres`: PostgreSQL 15
 - `ente-web`: Ente Photos web app
-- `personal-website`: Spring Boot app from public ECR
+- `personal-website`: Spring Boot app from public ECR, configured by `PERSONAL_*` and `SKATETRICKS_*` env vars from `.env`
 - `vaultwarden`: Bitwarden-compatible password manager
 
 **Volumes:**
