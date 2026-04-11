@@ -174,7 +174,7 @@ Notifications go via `alarm-notify.sh` → AWS SNS → email. The IAM user (`net
 In practice this means you will receive recovery notifications but not initial alert notifications. This is a v2.x behavior change from v1.x.
 
 **Noisy alarms to be aware of:**
-- `apps_group_file_descriptors_utilization` (role: `sysadmin`) — fires constantly for short-lived processes (cron jobs, certbot, etc.) hitting per-process fd limits. These are transient and harmless; they clear within seconds and never notify.
+- `apps_group_file_descriptors_utilization` is silenced via `netdata/health.d/file_descriptors.conf` because short-lived processes (cron jobs, certbot, etc.) trip it constantly and it has not been operationally useful.
 
 **Diagnosing notification failures:**
 
@@ -244,5 +244,5 @@ aws-vault exec thonbecker -- <command>
 - Trusted proxies configured for RFC-1918 ranges to handle Nginx forwarding
 - `nextcloud-app` has `extra_hosts: cloud.thonbecker.biz:host-gateway` so internal server-to-self requests route via the Docker bridge to nginx rather than through Cloudflare
 - All nginx virtual host configs are version-controlled in `nginx/` — symlinked from `/etc/nginx/sites-enabled/`
-- Netdata configs are version-controlled in `netdata/` — symlinked from `/etc/netdata/` (`netdata.conf`, `health_alarm_notify.conf`, `go.d/httpcheck.conf`)
+- Netdata configs are version-controlled in `netdata/` — symlinked from `/etc/netdata/` (`netdata.conf`, `health_alarm_notify.conf`, `go.d/httpcheck.conf`, `health.d/file_descriptors.conf`)
 - Netdata httpcheck uses localhost URLs (not public domains) to avoid adding load through Cloudflare
