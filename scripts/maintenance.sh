@@ -36,6 +36,7 @@ show_menu() {
     echo "13. Clear Redis cache"
     echo "14. Show Nextcloud status"
     echo "15. Run security scan"
+    echo "16. Update Netdata"
     echo "0. Exit"
     echo ""
     read -p "Enter your choice: " choice
@@ -193,6 +194,11 @@ security_scan() {
     docker compose exec -u www-data app php occ update:check
 }
 
+update_netdata() {
+    echo -e "${YELLOW}Updating Netdata...${NC}"
+    ./scripts/update-netdata.sh
+}
+
 # Main loop
 while true; do
     show_menu
@@ -213,6 +219,7 @@ while true; do
         13) clear_cache ;;
         14) show_status ;;
         15) security_scan ;;
+        16) update_netdata ;;
         0)
             echo -e "${GREEN}Goodbye!${NC}"
             exit 0

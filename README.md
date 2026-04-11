@@ -36,6 +36,7 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 **Netdata** — Host-level observability (native systemd service, not containerized)
 - Alerts via AWS SNS → email
 - HTTP health checks for all services (localhost)
+- Upgrade with `./scripts/update-netdata.sh`
 
 All six domains are Cloudflare-proxied. SSL terminates at nginx via Certbot.
 
@@ -88,6 +89,7 @@ sudo systemctl reload nginx
 
 # Netdata
 sudo systemctl restart netdata
+./scripts/update-netdata.sh
 
 # SSL certificate renewal
 sudo certbot renew --dry-run

@@ -111,6 +111,7 @@ S3 available for overflow storage if needed.
 - HTTP health checks for all services (via localhost)
 - Alerts via AWS SNS → email
 - Config in `netdata/`, symlinked to `/etc/netdata/`
+- Upgrade with `./scripts/update-netdata.sh`
 
 **Health checks:**
 - Docker container health: `/status.php`

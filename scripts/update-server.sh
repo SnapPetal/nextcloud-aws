@@ -16,7 +16,13 @@ git pull origin main
 echo "✅ Code updated"
 
 echo ""
-echo "Step 2: Pulling latest images and rebuilding..."
+echo "Step 2: Updating Netdata..."
+echo "-----------------------------------"
+./scripts/update-netdata.sh
+echo "✅ Netdata updated"
+
+echo ""
+echo "Step 3: Pulling latest images and rebuilding..."
 echo "-----------------------------------"
 docker compose down
 docker compose build --pull --no-cache
@@ -25,7 +31,7 @@ sudo systemctl reload nginx
 docker image prune -f
 
 echo ""
-echo "Step 3: Waiting for Nextcloud to be ready..."
+echo "Step 4: Waiting for Nextcloud to be ready..."
 echo "-----------------------------------"
 sleep 10
 

@@ -49,7 +49,7 @@ Nine containers in docker-compose.yml:
 - **nextcloud-clamav** — ClamAV antivirus daemon on port 3310
 
 **Observability (native host service, not containerized):**
-- **netdata** — Native systemd service (installed via apt from Netdata repo), binds 127.0.0.1:19999 (proxied at status.thonbecker.biz). Alerts via AWS SNS (`NextcloudRecoveryTopic`). Config symlinked from `netdata/` into `/etc/netdata/`. AWS credentials injected via `/etc/systemd/system/netdata.service.d/override.conf` (loads `.env` as EnvironmentFile).
+- **netdata** — Native systemd service (installed via apt from Netdata repo), binds 127.0.0.1:19999 (proxied at status.thonbecker.biz). Alerts via AWS SNS (`NextcloudRecoveryTopic`). Config symlinked from `netdata/` into `/etc/netdata/`. AWS credentials injected via `/etc/systemd/system/netdata.service.d/override.conf` (loads `.env` as EnvironmentFile). Upgrade with `./scripts/update-netdata.sh`.
 
 **Ente Photos:**
 - **ente-museum** — Ente API server, binds 127.0.0.1:8082 (proxied at photos-api.thonbecker.biz)
@@ -118,6 +118,7 @@ sudo systemctl status netdata
 sudo systemctl restart netdata   # after config changes in netdata/
 sudo systemctl stop netdata
 sudo systemctl start netdata
+./scripts/update-netdata.sh      # upgrade to the latest packaged Netdata version
 
 # SSL certificate renewal (automatic via certbot.timer, twice daily)
 sudo certbot renew --dry-run   # test
