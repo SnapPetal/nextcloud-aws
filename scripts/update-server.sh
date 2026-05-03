@@ -22,7 +22,13 @@ echo "-----------------------------------"
 echo "✅ Netdata updated"
 
 echo ""
-echo "Step 3: Pulling latest images and rebuilding..."
+echo "Step 3: Syncing PersonalWeb OpenAI secret..."
+echo "-----------------------------------"
+./scripts/sync-personalweb-openai-secret.sh
+echo "✅ PersonalWeb OpenAI secret synced"
+
+echo ""
+echo "Step 4: Pulling latest images and rebuilding..."
 echo "-----------------------------------"
 docker compose down
 docker compose build --pull --no-cache
@@ -31,7 +37,7 @@ sudo systemctl reload nginx
 docker image prune -f
 
 echo ""
-echo "Step 4: Waiting for Nextcloud to be ready..."
+echo "Step 5: Waiting for Nextcloud to be ready..."
 echo "-----------------------------------"
 sleep 10
 

@@ -67,6 +67,16 @@ S3 available for overflow storage if needed.
 - `/var/lib/nextcloud/mysql` → `/var/lib/mysql` (MariaDB data)
 - `/var/lib/personal-website/videos` → `/app/videos` (video processing)
 
+## PersonalWeb OpenAI Secret
+
+`personal-website` reads `PERSONAL_OPENAI_API_KEY` from the compose environment. The value is sourced from AWS Secrets Manager secret `personalweb/openai-api-key` by running:
+
+```bash
+./scripts/sync-personalweb-openai-secret.sh
+```
+
+The GitHub deploy workflow and `scripts/update-server.sh` run this sync before restarting containers.
+
 ## Installed Nextcloud Apps
 
 - Calendar (CalDAV sync)

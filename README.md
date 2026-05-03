@@ -28,7 +28,7 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 - **ente-web** — Ente Photos web app
 
 **Personal Website** — [thonbecker.biz](https://thonbecker.biz)
-- **personal-website** — Spring Boot app from public ECR, uses external RDS PostgreSQL and consumes `PERSONAL_*` plus `SKATETRICKS_*` env vars for skateboard video upload/transcoding and frame-based analysis
+- **personal-website** — Spring Boot app from public ECR, uses external RDS PostgreSQL and consumes `PERSONAL_*` plus `SKATETRICKS_*` env vars for OpenAI-backed AI features and skateboard video upload/transcoding/frame analysis
 
 **Vaultwarden** — Self-hosted Bitwarden-compatible password manager
 - **vaultwarden** — Password vault with browser extension, mobile, and desktop client support
@@ -39,6 +39,17 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 - Upgrade with `./scripts/update-netdata.sh`
 
 All six domains are Cloudflare-proxied. SSL terminates at nginx via Certbot.
+
+## PersonalWeb OpenAI Secret
+
+The PersonalWeb OpenAI API key is stored in AWS Secrets Manager as `personalweb/openai-api-key`.
+Before restarting `personal-website`, sync it into the local `.env` file:
+
+```bash
+./scripts/sync-personalweb-openai-secret.sh
+```
+
+The script uses `PERSONAL_AWS_ACCESS_KEY_ID`, `PERSONAL_AWS_SECRET_ACCESS_KEY`, and `PERSONAL_AWS_REGION` from `.env` to read the secret, then writes `PERSONAL_OPENAI_API_KEY` and default model variables for Docker Compose.
 
 ## Prerequisites
 
