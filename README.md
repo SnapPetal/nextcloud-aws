@@ -104,6 +104,9 @@ sudo systemctl restart netdata
 
 # SSL certificate renewal
 sudo certbot renew --dry-run
+
+# Ente Photos: set all account quotas to self-hosted "no limit" values
+./scripts/ente-set-unlimited-storage.sh -a <admin-email>
 ```
 
 ## Backups
@@ -198,6 +201,50 @@ nextcloud-aws/
 
 ```bash
 ssh -i ~/.ssh/lightsail.pem ubuntu@18.213.161.133
+```
+
+The production checkout lives at `~/nextcloud-aws` on the Lightsail server:
+
+```bash
+ssh -i ~/.ssh/lightsail.pem ubuntu@18.213.161.133
+cd ~/nextcloud-aws
+```
+
+### Ente Photos Admin Notes
+
+The Ente web app is `https://photos.thonbecker.biz`; the Ente Museum API is
+`https://photos-api.thonbecker.biz`.
+
+The Ente CLI is installed on the server at `~/.local/bin/ente` and configured in
+`~/.ente/config.yaml` with:
+
+```yaml
+endpoint:
+  api: https://photos-api.thonbecker.biz
+```
+
+Because the server is headless, the CLI uses `ENTE_CLI_SECRETS_PATH=~/.ente/secrets.txt`
+instead of a desktop keyring. This is exported from `~/.profile`.
+
+Current Ente account quotas were set directly in PostgreSQL on 2026-06-06 to the
+same values used by Ente CLI's `--no-limit` mode:
+
+- `storage = 109951162777600` bytes, which is 100 TiB
+- `expiry_time` around 2126-06-06
+
+A pre-change backup of the `subscriptions` table was saved on the server at:
+
+```bash
+/home/ubuntu/ente-subscriptions-before-unlimited-20260606035656.sql
+```
+
+To verify current quotas:
+
+```bash
+cd ~/nextcloud-aws
+set -a && . ./.env && set +a
+docker compose exec -T ente-postgres psql -U "$ENTE_POSTGRES_USER" -d "$ENTE_POSTGRES_DB" \
+  -c "SELECT COUNT(*) AS accounts, MIN(storage) AS min_storage, MAX(storage) AS max_storage, MIN(to_timestamp(expiry_time / 1000000.0)) AS earliest_expiry FROM subscriptions;"
 ```
 
 ## Resources

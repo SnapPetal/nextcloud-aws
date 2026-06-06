@@ -56,6 +56,15 @@ Nine containers in docker-compose.yml:
 - **ente-postgres** — PostgreSQL 15 for Ente metadata
 - **ente-web** — Ente Photos web app, binds 127.0.0.1:3000 (proxied at photos.thonbecker.biz)
 
+**Ente admin/CLI notes:** Ente CLI is installed on the Lightsail server at `~/.local/bin/ente`. Its config lives at `~/.ente/config.yaml` and must point to the Museum API endpoint, not the web app:
+
+```yaml
+endpoint:
+  api: https://photos-api.thonbecker.biz
+```
+
+The server is headless, so Ente CLI uses `ENTE_CLI_SECRETS_PATH=~/.ente/secrets.txt` instead of a desktop keyring; this is exported from `~/.profile`. On 2026-06-06 all Ente account subscriptions were set to Ente's self-hosted "no limit" values: `storage = 109951162777600` bytes (100 TiB) and expiry around 2126-06-06. A pre-change `subscriptions` table backup is on the server at `/home/ubuntu/ente-subscriptions-before-unlimited-20260606035656.sql`. To reapply via CLI after logging in an admin account, use `./scripts/ente-set-unlimited-storage.sh -a <admin-email>`.
+
 **Personal Website:**
 - **personal-website** — Personal web app (Spring Boot) from public ECR (`public.ecr.aws/p0w8z2j2/personal`), binds 127.0.0.1:3003 (proxied at thonbecker.biz). Uses external RDS PostgreSQL, not a local container. Has a bind mount at `/var/lib/personal-website/videos` → `/app/videos` for temporary skateboard video processing. nginx configured with `client_max_body_size 100M` (skateboard trick video uploads) and WebSocket upgrade headers (skatetricks-websocket endpoint).
 
