@@ -49,7 +49,7 @@ Nine containers in docker-compose.yml:
 - **nextcloud-clamav** — ClamAV antivirus daemon on port 3310
 
 **Observability (native host service, not containerized):**
-- **netdata** — Native systemd service (installed via apt from Netdata repo), binds 127.0.0.1:19999 (proxied at status.thonbecker.biz). Alerts via AWS SNS (`NextcloudRecoveryTopic`). Config symlinked from `netdata/` into `/etc/netdata/`. AWS credentials injected via `/etc/systemd/system/netdata.service.d/override.conf` (loads `.env` as EnvironmentFile). Upgrade with `./scripts/update-netdata.sh`.
+- **netdata** — Native systemd service (installed via apt from Netdata repo), binds 127.0.0.1:19999 (proxied at status.thonbecker.biz). Alerts via AWS SNS (`NextcloudRecoveryTopic`). Config copied from `netdata/` into `/etc/netdata/` by the GitHub Actions deploy workflow. AWS credentials injected via `/etc/systemd/system/netdata.service.d/override.conf` (loads `.env` as EnvironmentFile). Upgrade with `./scripts/update-netdata.sh`.
 
 **Ente Photos:**
 - **ente-museum** — Ente API server, binds 127.0.0.1:8082 (proxied at photos-api.thonbecker.biz)
@@ -177,6 +177,7 @@ In practice this means you will receive recovery notifications but not initial a
 
 **Noisy alarms to be aware of:**
 - `apps_group_file_descriptors_utilization` is silenced via `netdata/health.d/file_descriptors.conf` because short-lived processes (cron jobs, certbot, etc.) trip it constantly and it has not been operationally useful.
+- `web_log_1m_unmatched` is silenced via `netdata/health.d/web_log.conf` because it reports unparsed access log lines, while actual service availability is covered by localhost httpcheck jobs.
 
 **Diagnosing notification failures:**
 
@@ -246,5 +247,5 @@ aws-vault exec thonbecker -- <command>
 - Trusted proxies configured for RFC-1918 ranges to handle Nginx forwarding
 - `nextcloud-app` has `extra_hosts: cloud.thonbecker.biz:host-gateway` so internal server-to-self requests route via the Docker bridge to nginx rather than through Cloudflare
 - All nginx virtual host configs are version-controlled in `nginx/` — symlinked from `/etc/nginx/sites-enabled/`
-- Netdata configs are version-controlled in `netdata/` — symlinked from `/etc/netdata/` (`netdata.conf`, `health_alarm_notify.conf`, `go.d/httpcheck.conf`, `health.d/file_descriptors.conf`)
+- Netdata configs are version-controlled in `netdata/` and copied into `/etc/netdata/` by the GitHub Actions deploy workflow (`netdata.conf`, `health_alarm_notify.conf`, `go.d/httpcheck.conf`, `health.d/file_descriptors.conf`, `health.d/web_log.conf`)
 - Netdata httpcheck uses localhost URLs (not public domains) to avoid adding load through Cloudflare

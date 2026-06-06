@@ -27,8 +27,15 @@ jobs:
             # Pull latest changes
             git pull origin main
 
-            # Restart Netdata if any netdata/ configs changed (configs are symlinked into /etc/netdata/)
-            git diff ORIG_HEAD HEAD --name-only | grep -q '^netdata/' && sudo systemctl restart netdata || true
+            # Copy repo-managed Netdata configs and restart if any changed.
+            if git diff ORIG_HEAD HEAD --name-only | grep -q '^netdata/'; then
+              sudo install -D -m 0644 "$PWD/netdata/netdata.conf" /etc/netdata/netdata.conf
+              sudo install -D -m 0644 "$PWD/netdata/health_alarm_notify.conf" /etc/netdata/health_alarm_notify.conf
+              sudo install -D -m 0644 "$PWD/netdata/go.d/httpcheck.conf" /etc/netdata/go.d/httpcheck.conf
+              sudo install -D -m 0644 "$PWD/netdata/health.d/file_descriptors.conf" /etc/netdata/health.d/file_descriptors.conf
+              sudo install -D -m 0644 "$PWD/netdata/health.d/web_log.conf" /etc/netdata/health.d/web_log.conf
+              sudo systemctl restart netdata
+            fi
 
             # Pull latest Docker images (only standard images, not custom-built ones)
             docker compose pull db redis clamav ente-postgres ente-museum ente-web vaultwarden personal-website

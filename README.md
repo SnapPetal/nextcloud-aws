@@ -169,7 +169,8 @@ nextcloud-aws/
 ├── netdata/
 │   ├── netdata.conf            # Netdata configuration
 │   ├── health_alarm_notify.conf # SNS alert notifications
-│   └── go.d/httpcheck.conf     # HTTP health checks (localhost)
+│   ├── go.d/httpcheck.conf     # HTTP health checks (localhost)
+│   └── health.d/               # Alert overrides for noisy alarms
 ├── nginx/
 │   ├── nextcloud               # cloud.thonbecker.biz
 │   ├── www.thonbecker.biz      # thonbecker.biz
