@@ -24,8 +24,11 @@ jobs:
             # Navigate to project directory
             cd ~/nextcloud-aws || exit 1
 
-            # Pull latest changes
-            git pull origin main
+            # Force tracked repo content to exactly match origin/main while leaving
+            # untracked local files like .env and generated configs alone.
+            git fetch origin
+            git checkout main
+            git reset --hard origin/main
 
             # Copy repo-managed Netdata configs and restart if any changed.
             if git diff ORIG_HEAD HEAD --name-only | grep -q '^netdata/'; then
