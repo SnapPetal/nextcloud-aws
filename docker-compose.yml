@@ -118,7 +118,7 @@ services:
       start_period: 30s
 
   ente-museum:
-    image: ghcr.io/ente-io/server
+    image: ghcr.io/ente/server
     container_name: ente-museum
     restart: unless-stopped
     ports:
@@ -138,7 +138,7 @@ services:
       start_period: 30s
 
   ente-web:
-    image: ghcr.io/ente-io/web
+    image: ghcr.io/ente/web
     container_name: ente-web
     restart: unless-stopped
     ports:
