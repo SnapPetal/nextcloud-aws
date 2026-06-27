@@ -1,5 +1,7 @@
 # Environment files
 .env
+.env.bak-*
+.vaultwarden-admin-token-*.txt
 
 # Generated config with secrets
 ente/museum.yaml

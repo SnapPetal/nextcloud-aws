@@ -162,7 +162,19 @@ Vaultwarden serves internally on HTTP port 80. Use the official Bitwarden client
 
 ## Vaultwarden User Management
 
-**Admin panel:** `https://vault.thonbecker.biz/admin` — token is `VAULTWARDEN_ADMIN_TOKEN` in `.env`.
+**Admin panel:** `https://vault.thonbecker.biz/admin`.
+
+The plaintext admin token is local-only and must not be committed. It is stored on the operator machine as `.vaultwarden-admin-token-*.txt`. The server `.env` stores only the Argon2 PHC hash in `VAULTWARDEN_ADMIN_TOKEN`; keep the hash single-quoted so Docker Compose does not interpolate the dollar signs:
+
+```bash
+VAULTWARDEN_ADMIN_TOKEN='$argon2id$v=19$m=19456,t=2,p=1$...'
+```
+
+If the plaintext admin token is lost, generate a new token, hash it with `argon2`, replace `VAULTWARDEN_ADMIN_TOKEN` with the quoted PHC hash, and restart only Vaultwarden:
+
+```bash
+docker compose up -d vaultwarden
+```
 
 **Inviting a user:**
 1. Admin panel → **Users** → enter email → **Invite**

@@ -109,6 +109,26 @@ sudo certbot renew --dry-run
 ./scripts/ente-set-unlimited-storage.sh -a <admin-email>
 ```
 
+### Vaultwarden Admin Token
+
+The admin panel is `https://vault.thonbecker.biz/admin`. The plaintext admin token is not stored on the server or in Git; it is kept locally in:
+
+```bash
+.vaultwarden-admin-token-*.txt
+```
+
+The server `.env` stores only an Argon2 PHC hash in `VAULTWARDEN_ADMIN_TOKEN`. Keep the hash quoted in `.env` so Docker Compose does not interpolate the dollar signs:
+
+```bash
+VAULTWARDEN_ADMIN_TOKEN='$argon2id$v=19$m=19456,t=2,p=1$...'
+```
+
+If the plaintext token is lost, rotate it by generating a new token, hashing it with `argon2`, replacing `VAULTWARDEN_ADMIN_TOKEN` with the quoted PHC hash, and restarting Vaultwarden:
+
+```bash
+docker compose up -d vaultwarden
+```
+
 ## Backups
 
 `scripts/backup-to-s3.sh` runs nightly at 02:00 via cron:

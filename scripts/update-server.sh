@@ -30,7 +30,7 @@ echo "✅ PersonalWeb OpenAI secret synced"
 echo ""
 echo "Step 4: Pulling latest images and rebuilding..."
 echo "-----------------------------------"
-docker compose down
+docker compose pull
 docker compose build --pull --no-cache
 docker compose up -d
 sudo systemctl reload nginx
