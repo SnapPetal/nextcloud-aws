@@ -54,6 +54,10 @@ jobs:
             # Sync PersonalWeb OpenAI key from AWS Secrets Manager into .env
             ./scripts/sync-personalweb-openai-secret.sh
 
+            # Ensure newly added PersonalWeb virtual hosts are enabled.
+            sudo ln -sfn "$PWD/nginx/app.thonbecker.biz" /etc/nginx/sites-enabled/app.thonbecker.biz
+            sudo ln -sfn "$PWD/nginx/booking.thonbecker.biz" /etc/nginx/sites-enabled/booking.thonbecker.biz
+
             # Build and restart containers (--pull always ensures base images are fresh)
             docker compose build --pull app
             docker compose up -d

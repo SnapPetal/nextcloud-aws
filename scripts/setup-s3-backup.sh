@@ -6,7 +6,7 @@
 # This script configures AWS credentials on the server and wires up the cron job.
 #
 # Before running, retrieve the secret key from Secrets Manager:
-#   aws-vault exec thonbecker -- aws secretsmanager get-secret-value \
+#   aws secretsmanager get-secret-value \
 #     --secret-id nextcloud-db-backup-user-secret-key \
 #     --query SecretString --output text
 
@@ -43,7 +43,7 @@ echo "Bucket (CDK-managed): s3://${DB_BACKUP_BUCKET}"
 echo "IAM user:             nextcloud-db-backup-user"
 echo ""
 echo -e "${YELLOW}Retrieve the secret key with:${NC}"
-echo "  aws-vault exec thonbecker -- aws secretsmanager get-secret-value \\"
+echo "  aws secretsmanager get-secret-value \\"
 echo "    --secret-id nextcloud-db-backup-user-secret-key \\"
 echo "    --query SecretString --output text"
 echo ""

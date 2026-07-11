@@ -7,6 +7,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 ENV_FILE="${ENV_FILE:-.env}"
 SECRET_ID="${PERSONAL_OPENAI_SECRET_ID:-personalweb/openai-api-key}"
+ADMIN_SECRET_ID="${PERSONAL_ADMIN_SECRET_ID:-personalweb/admin-credentials}"
 
 if [[ -f "$ENV_FILE" ]]; then
   set -a
@@ -36,6 +37,15 @@ if [[ -z "$openai_key" || "$openai_key" == "None" ]]; then
   exit 1
 fi
 
+admin_credentials="$(aws secretsmanager get-secret-value \
+  --secret-id "$ADMIN_SECRET_ID" \
+  --query SecretString \
+  --output text \
+  --region "$AWS_REGION")"
+
+admin_username="$(jq -er '.username' <<< "$admin_credentials")"
+admin_password="$(jq -er '.password' <<< "$admin_credentials")"
+
 set_env_var() {
   local name="$1"
   local value="$2"
@@ -53,6 +63,8 @@ set_env_var PERSONAL_OPENAI_TRIVIA_MODEL "${PERSONAL_OPENAI_TRIVIA_MODEL:-gpt-4o
 set_env_var PERSONAL_OPENAI_EMBEDDING_MODEL "${PERSONAL_OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}"
 set_env_var PERSONAL_OPENAI_EMBEDDING_DIMENSIONS "${PERSONAL_OPENAI_EMBEDDING_DIMENSIONS:-1024}"
 set_env_var PERSONAL_OPENAI_IMAGE_MODEL "${PERSONAL_OPENAI_IMAGE_MODEL:-dall-e-3}"
+set_env_var PERSONAL_ADMIN_USERNAME "$admin_username"
+set_env_var PERSONAL_ADMIN_PASSWORD "$admin_password"
 
 chmod 600 "$ENV_FILE"
-echo "Synced PersonalWeb OpenAI secret into $ENV_FILE"
+echo "Synced PersonalWeb runtime secrets into $ENV_FILE"

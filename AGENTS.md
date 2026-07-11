@@ -13,14 +13,16 @@ Infrastructure-as-configuration repository for a self-hosted Nextcloud instance 
 ```
 Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bridge (nextcloud-net)
   cloud.thonbecker.biz        → 127.0.0.1:8080 (Nextcloud)
-  thonbecker.biz              → 127.0.0.1:3003 (Personal Website)
+  thonbecker.biz              → /var/www/thonbecker-static (Static Website)
+  app.thonbecker.biz          → 127.0.0.1:3003 (Personal Web Apps)
+  booking.thonbecker.biz      → 127.0.0.1:3003 (Booking)
   photos.thonbecker.biz       → 127.0.0.1:3000 (Ente Web)
   photos-api.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
   status.thonbecker.biz       → 127.0.0.1:19999 (Netdata)
   vault.thonbecker.biz        → 127.0.0.1:3002 (Vaultwarden)
 ```
 
-All six domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). Incoming IPs seen by nginx are Cloudflare ranges — trusted proxies are configured for RFC-1918 ranges which covers the nginx→container hop. Certbot uses the `nginx` authenticator (HTTP-01 challenge), which works through Cloudflare proxy.
+All eight domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). Incoming IPs seen by nginx are Cloudflare ranges — trusted proxies are configured for RFC-1918 ranges which covers the nginx→container hop. Certbot uses the `nginx` authenticator (HTTP-01 challenge), which works through Cloudflare proxy.
 
 **Cloudflare feature settings:**
 
@@ -66,7 +68,7 @@ endpoint:
 The server is headless, so Ente CLI uses `ENTE_CLI_SECRETS_PATH=~/.ente/secrets.txt` instead of a desktop keyring; this is exported from `~/.profile`. On 2026-06-06 all Ente account subscriptions were set to Ente's self-hosted "no limit" values: `storage = 109951162777600` bytes (100 TiB) and expiry around 2126-06-06. A pre-change `subscriptions` table backup is on the server at `/home/ubuntu/ente-subscriptions-before-unlimited-20260606035656.sql`. To reapply via CLI after logging in an admin account, use `./scripts/ente-set-unlimited-storage.sh -a <admin-email>`.
 
 **Personal Website:**
-- **personal-website** — Personal web app (Spring Boot) from public ECR (`public.ecr.aws/p0w8z2j2/personal`), binds 127.0.0.1:3003 (proxied at thonbecker.biz). Uses external RDS PostgreSQL, not a local container. Has a bind mount at `/var/lib/personal-website/videos` → `/app/videos` for temporary skateboard video processing. nginx configured with `client_max_body_size 100M` (skateboard trick video uploads) and WebSocket upgrade headers (skatetricks-websocket endpoint).
+- **personal-website** — Personal web app (Spring Boot) from public ECR (`public.ecr.aws/p0w8z2j2/personal`), binds 127.0.0.1:3003 (proxied at app.thonbecker.biz and booking.thonbecker.biz). Uses external RDS PostgreSQL, not a local container. Has a bind mount at `/var/lib/personal-website/videos` → `/app/videos` for temporary skateboard video processing. nginx configures large uploads and WebSocket upgrades on the app hostname; the booking hostname exposes only booking and shared asset paths.
 
 **Vaultwarden:**
 - **vaultwarden** — Bitwarden-compatible password manager (vaultwarden/server), binds 127.0.0.1:3002 (proxied at vault.thonbecker.biz)
@@ -139,9 +141,9 @@ sudo certbot renew             # force manual renewal
 
 ## Configuration
 
-`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET, S3_DB_BACKUP_BUCKET, ENTE_* variables for Ente Photos (Postgres, S3, JWT, SMTP), and `PERSONAL_*` plus `SKATETRICKS_*` variables for the personal website (OpenAI, Cognito, Nextcloud CalDAV, Perenual API, AWS media services, and MediaConvert-backed skateboard video processing).
+`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET, S3_DB_BACKUP_BUCKET, ENTE_* variables for Ente Photos (Postgres, S3, JWT, SMTP), and `PERSONAL_*` plus `SKATETRICKS_*` variables for the personal website (OpenAI, booking administration, Nextcloud CalDAV, Perenual API, AWS media services, and MediaConvert-backed skateboard video processing).
 
-Run `./scripts/sync-personalweb-openai-secret.sh` before restarting `personal-website`. It reads `personalweb/openai-api-key` from AWS Secrets Manager using the `PERSONAL_AWS_*` credentials in `.env` and writes `PERSONAL_OPENAI_API_KEY` plus default model variables back to `.env` for Docker Compose.
+Run `./scripts/sync-personalweb-openai-secret.sh` before restarting `personal-website`. It reads `personalweb/openai-api-key` and `personalweb/admin-credentials` from AWS Secrets Manager using the `PERSONAL_AWS_*` credentials in `.env`, then writes the runtime values back to `.env` for Docker Compose.
 
 The Lightsail instance is 4 vCPU / 16 GB RAM. PHP is tuned with `PHP_MEMORY_LIMIT=4G`, `PHP_UPLOAD_LIMIT=10G`, Opcache 512 MB. MariaDB runs with `--transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW` as Nextcloud requires.
 
@@ -152,6 +154,8 @@ All five virtual host configs live in `nginx/` and are symlinked into `/etc/ngin
 ```
 nginx/nextcloud                  → cloud.thonbecker.biz
 nginx/www.thonbecker.biz         → thonbecker.biz
+nginx/app.thonbecker.biz         → app.thonbecker.biz
+nginx/booking.thonbecker.biz     → booking.thonbecker.biz
 nginx/status.thonbecker.biz      → status.thonbecker.biz
 nginx/photos.thonbecker.biz      → photos.thonbecker.biz
 nginx/photos-api.thonbecker.biz  → photos-api.thonbecker.biz
@@ -253,7 +257,7 @@ Dependabot checks weekly for GitHub Actions and Docker base image updates.
 ssh -i ~/.ssh/lightsail.pem ubuntu@18.213.161.133
 
 # AWS CLI with credentials
-aws-vault exec thonbecker -- <command>
+aws <command>
 ```
 
 ## Conventions
