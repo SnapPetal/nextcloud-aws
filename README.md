@@ -131,6 +131,27 @@ If the plaintext token is lost, rotate it by generating a new token, hashing it 
 docker compose up -d vaultwarden
 ```
 
+### Vaultwarden upgrades
+
+The Vaultwarden image is pinned to a release tag so an unrelated deployment does not silently upgrade the password manager. Check the [Vaultwarden releases](https://github.com/dani-garcia/vaultwarden/releases) page periodically, and review security advisories and release notes before upgrading.
+
+Before upgrading, confirm the nightly backup completed successfully:
+
+```bash
+tail -n 50 /var/lib/nextcloud/data/backups/backup.log
+```
+
+To upgrade, change the `vaultwarden/server:<version>` tag in `docker-compose.yml`, commit and deploy the change, then verify the container and web vault:
+
+```bash
+docker compose pull vaultwarden
+docker compose up -d vaultwarden
+docker compose ps vaultwarden
+docker compose logs --since=5m vaultwarden
+```
+
+Keep the previous image tag available until login, browser-extension sync, invitations, and the admin panel have been tested.
+
 ## Backups
 
 `scripts/backup-to-s3.sh` runs nightly at 02:00 via cron:
