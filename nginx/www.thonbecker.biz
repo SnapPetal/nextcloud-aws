@@ -1,5 +1,5 @@
 server {
-    server_name thonbecker.biz;
+    server_name thonbecker.biz www.thonbecker.biz;
 
     root /var/www/thonbecker-static;
     index index.html;
@@ -24,12 +24,16 @@ server {
 
 }
 server {
+    if ($host = www.thonbecker.biz) {
+        return 301 https://thonbecker.biz$request_uri;
+    }
+
     if ($host = thonbecker.biz) {
         return 301 https://$host$request_uri;
     } # managed by Certbot
 
 
-    server_name thonbecker.biz;
+    server_name thonbecker.biz www.thonbecker.biz;
 
     listen 80;
     return 404; # managed by Certbot
