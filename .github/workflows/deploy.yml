@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -21,6 +25,8 @@ jobs:
           username: ${{ secrets.LIGHTSAIL_USER }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           script: |
+            set -euo pipefail
+
             # Navigate to project directory
             cd ~/nextcloud-aws || exit 1
 
@@ -60,7 +66,7 @@ jobs:
 
             # Build and restart containers (--pull always ensures base images are fresh)
             docker compose build --pull app
-            docker compose up -d
+            docker compose up -d --wait --wait-timeout 180
 
             # Reload nginx to pick up any config changes (test first so a bad
             # config never takes down all virtual hosts)
@@ -82,11 +88,12 @@ jobs:
             # Wait for containers to be healthy
             sleep 10
 
-            # Check if all containers are running
-            if [ $(docker compose -f ~/nextcloud-aws/docker-compose.yml ps -q | wc -l) -eq 9 ]; then
-              echo "All containers are running successfully!"
-            else
-              echo "Warning: Some containers may not be running"
-              docker compose -f ~/nextcloud-aws/docker-compose.yml ps
+            # Check that every declared service has a running container.
+            expected=$(docker compose -f ~/nextcloud-aws/docker-compose.yml config --services | wc -l)
+            running=$(docker compose -f ~/nextcloud-aws/docker-compose.yml ps --status running -q | sort -u | wc -l)
+            if [ "$running" -ne "$expected" ]; then
+              echo "Expected $expected running containers, found $running"
+              docker compose -f ~/nextcloud-aws/docker-compose.yml ps -a
               exit 1
             fi
+            echo "All $running declared services are running successfully!"
