@@ -7,7 +7,9 @@ Multi-service self-hosted stack on AWS Lightsail using Docker, Nginx, and Cloudf
 ```
 Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bridge (nextcloud-net)
   cloud.thonbecker.biz        → 127.0.0.1:8080 (Nextcloud)
-  thonbecker.biz              → 127.0.0.1:3003 (Personal Website)
+  thonbecker.biz              → /var/www/thonbecker-static (Static Website)
+  app.thonbecker.biz          → 127.0.0.1:3003 (Personal Web Apps)
+  booking.thonbecker.biz      → 127.0.0.1:3003 (Booking)
   photos.thonbecker.biz       → 127.0.0.1:3000 (Ente Web)
   photos-api.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
   status.thonbecker.biz       → 127.0.0.1:19999 (Netdata)
@@ -38,18 +40,18 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 - HTTP health checks for all services (localhost)
 - Upgrade with `./scripts/update-netdata.sh`
 
-All six domains are Cloudflare-proxied. SSL terminates at nginx via Certbot.
+All eight domains are Cloudflare-proxied. SSL terminates at nginx via Certbot.
 
-## PersonalWeb OpenAI Secret
+## PersonalWeb Runtime Secrets
 
-The PersonalWeb OpenAI API key is stored in AWS Secrets Manager as `personalweb/openai-api-key`.
+The PersonalWeb OpenAI API key is stored in AWS Secrets Manager as `personalweb/openai-api-key`; booking administrator credentials are stored as `personalweb/admin-credentials`.
 Before restarting `personal-website`, sync it into the local `.env` file:
 
 ```bash
 ./scripts/sync-personalweb-openai-secret.sh
 ```
 
-The script uses `PERSONAL_AWS_ACCESS_KEY_ID`, `PERSONAL_AWS_SECRET_ACCESS_KEY`, and `PERSONAL_AWS_REGION` from `.env` to read the secret, then writes `PERSONAL_OPENAI_API_KEY` and default model variables for Docker Compose.
+The script uses `PERSONAL_AWS_ACCESS_KEY_ID`, `PERSONAL_AWS_SECRET_ACCESS_KEY`, and `PERSONAL_AWS_REGION` from `.env`, then writes the OpenAI model variables and `PERSONAL_ADMIN_USERNAME`/`PERSONAL_ADMIN_PASSWORD` for Docker Compose.
 
 ## Prerequisites
 

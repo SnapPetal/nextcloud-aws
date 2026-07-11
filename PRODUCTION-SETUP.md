@@ -67,9 +67,9 @@ S3 available for overflow storage if needed.
 - `/var/lib/nextcloud/mysql` → `/var/lib/mysql` (MariaDB data)
 - `/var/lib/personal-website/videos` → `/app/videos` (video processing)
 
-## PersonalWeb OpenAI Secret
+## PersonalWeb Runtime Secrets
 
-`personal-website` reads `PERSONAL_OPENAI_API_KEY` from the compose environment. The value is sourced from AWS Secrets Manager secret `personalweb/openai-api-key` by running:
+`personal-website` reads its OpenAI key and booking administrator credentials from the compose environment. Values are sourced from `personalweb/openai-api-key` and `personalweb/admin-credentials` by running:
 
 ```bash
 ./scripts/sync-personalweb-openai-secret.sh
