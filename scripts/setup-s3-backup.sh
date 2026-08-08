@@ -5,7 +5,7 @@
 # The backup bucket and IAM user are managed by CDK (HomeWeb db-backup-stack).
 # This script configures AWS credentials on the server and wires up the cron job.
 #
-# Before running, retrieve the secret key from Secrets Manager:
+# Before running, retrieve the JSON credentials from Secrets Manager:
 #   aws secretsmanager get-secret-value \
 #     --secret-id nextcloud-db-backup-user-secret-key \
 #     --query SecretString --output text
@@ -36,20 +36,18 @@ fi
 
 # CDK-managed resources
 DB_BACKUP_BUCKET="nextcloud-db-backups-thonbecker"
-EXPECTED_KEY_ID="AKIAZVRVZ6IX6NOI2C3K"
 
 echo ""
 echo "Bucket (CDK-managed): s3://${DB_BACKUP_BUCKET}"
 echo "IAM user:             nextcloud-db-backup-user"
 echo ""
-echo -e "${YELLOW}Retrieve the secret key with:${NC}"
+echo -e "${YELLOW}Retrieve the JSON credentials with:${NC}"
 echo "  aws secretsmanager get-secret-value \\"
 echo "    --secret-id nextcloud-db-backup-user-secret-key \\"
 echo "    --query SecretString --output text"
 echo ""
 
-read -rp "AWS Access Key ID [${EXPECTED_KEY_ID}]: " ACCESS_KEY_ID
-ACCESS_KEY_ID="${ACCESS_KEY_ID:-${EXPECTED_KEY_ID}}"
+read -rp "AWS Access Key ID: " ACCESS_KEY_ID
 
 read -rsp "AWS Secret Access Key: " SECRET_ACCESS_KEY
 echo ""
