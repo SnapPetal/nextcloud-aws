@@ -184,7 +184,7 @@ services:
       - nextcloud-net
 
   vaultwarden:
-    image: vaultwarden/server:1.37.1
+    image: vaultwarden/server:latest
     container_name: vaultwarden
     restart: unless-stopped
     ports:
