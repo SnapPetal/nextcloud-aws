@@ -1,6 +1,6 @@
 db:
-  host: ente-postgres
-  port: 5432
+  host: ENTE_DB_HOST_PLACEHOLDER
+  port: ENTE_DB_PORT_PLACEHOLDER
   name: ente_db
   user: ENTE_DB_USER_PLACEHOLDER
   password: ENTE_DB_PASSWORD_PLACEHOLDER

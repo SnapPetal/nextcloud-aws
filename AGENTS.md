@@ -43,7 +43,7 @@ All nine domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles D
 | Rocket Loader | ❌ Off | Breaks Nextcloud's JavaScript — never enable |
 | Mirage / Polish | ❌ Off | Can corrupt file transfers and break previews |
 
-Ten containers in docker-compose.yml:
+Nine containers in docker-compose.yml:
 
 **Nextcloud:**
 - **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor), binds 127.0.0.1:8080 + 127.0.0.1:7867 (notify_push)
@@ -56,7 +56,7 @@ Ten containers in docker-compose.yml:
 
 **Ente Photos:**
 - **ente-museum** — Ente API server, binds 127.0.0.1:8082 (proxied at photos-api.thonbecker.biz)
-- **ente-postgres** — PostgreSQL 15 for Ente metadata
+- **Ente PostgreSQL** — Managed PostgreSQL database shared with the Personal Website; Ente uses its separate `ente_db` database
 - **ente-web** — Ente Photos web app, binds 127.0.0.1:3000 (proxied at photos.thonbecker.biz)
 
 **Ente admin/CLI notes:** Ente CLI is installed on the Lightsail server at `~/.local/bin/ente`. Its config lives at `~/.ente/config.yaml` and must point to the Museum API endpoint, not the web app:
@@ -245,7 +245,7 @@ Keeps last 3 local copies in `/var/lib/nextcloud/data/backups/`. Cron log at `/v
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, configures shared Valkey, reloads nginx, then verifies all 10 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
+`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, configures shared Valkey, reloads nginx, then verifies all 9 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
 **Deployment safety notes:**
 - `docker compose up -d` only restarts containers whose image or config actually changed — services with unchanged images are not touched

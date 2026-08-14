@@ -27,7 +27,7 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 
 **Ente Photos** — End-to-end encrypted photo storage
 - **ente-museum** — Ente API server
-- **ente-postgres** — PostgreSQL 15
+- **Managed PostgreSQL** — Ente uses the separate `ente_db` database on the shared Personal Website PostgreSQL service
 - **ente-web** — Ente Photos web app
 
 **Personal Website** — [thonbecker.biz](https://thonbecker.biz)
@@ -141,7 +141,7 @@ docker compose up -d vaultwarden
 
 ### Vaultwarden upgrades
 
-Application images use the `latest` tag, while MariaDB 10.11, PostgreSQL 15, and Valkey 8 are pinned to supported major versions. Review release notes and compatibility before deploying updates.
+Application images use the `latest` tag, while MariaDB 10.11 and Valkey 8 are pinned to supported major versions. Ente and the Personal Website use the managed PostgreSQL service. Review release notes and compatibility before deploying updates.
 
 Before upgrading, confirm the nightly backup completed successfully:
 
@@ -179,7 +179,7 @@ Push to `main` triggers GitHub Actions deployment:
 5. Restarts changed containers
 6. Reloads nginx
 7. Configures Nextcloud to use shared Valkey
-8. Verifies all 10 containers are running
+8. Verifies all 9 containers are running
 
 Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
@@ -243,7 +243,7 @@ nextcloud-aws/
 │   ├── setup-server.sh         # Initial server setup
 │   └── update-server.sh        # Server update script
 ├── searxng/                    # SearXNG configuration and cache mount
-├── docker-compose.yml          # All 10 containers
+├── docker-compose.yml          # All 9 containers
 ├── Dockerfile                  # Custom Nextcloud image
 ├── supervisord.conf            # Apache + cron in app container
 ├── .env.example                # Environment variables template
@@ -298,7 +298,11 @@ To verify current quotas:
 ```bash
 cd ~/nextcloud-aws
 set -a && . ./.env && set +a
-docker compose exec -T ente-postgres psql -U "$ENTE_POSTGRES_USER" -d "$ENTE_POSTGRES_DB" \
+docker run --rm --network host \
+  -e PGPASSWORD="$ENTE_POSTGRES_PASSWORD" \
+  -e PGSSLMODE=require \
+  postgres:15 psql -h "$ENTE_POSTGRES_HOST" -p "${ENTE_POSTGRES_PORT:-5432}" \
+  -U "$ENTE_POSTGRES_USER" -d "$ENTE_POSTGRES_DB" \
   -c "SELECT COUNT(*) AS accounts, MIN(storage) AS min_storage, MAX(storage) AS max_storage, MIN(to_timestamp(expiry_time / 1000000.0)) AS earliest_expiry FROM subscriptions;"
 ```
 

@@ -51,13 +51,13 @@ S3 available for overflow storage if needed.
 
 ## Docker Configuration
 
-**Containers (10 total):**
+**Containers (9 total):**
 - `nextcloud-app`: Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor)
 - `nextcloud-db`: MariaDB 10.11 (pinned)
 - `valkey`: Valkey shared by Nextcloud (database 0) and SearXNG (database 1)
 - `nextcloud-clamav`: ClamAV antivirus
 - `ente-museum`: Ente API server
-- `ente-postgres`: PostgreSQL 15
+- `ente-museum`: uses managed PostgreSQL for its separate `ente_db` database
 - `ente-web`: Ente Photos web app
 - `personal-website`: Spring Boot app from public ECR, configured by `PERSONAL_*` and `SKATETRICKS_*` env vars from `.env`
 - `vaultwarden`: Bitwarden-compatible password manager
@@ -152,7 +152,7 @@ The GitHub deploy workflow and `scripts/update-server.sh` run this sync before r
 5. Restart changed containers
 6. Reload nginx
 7. Configure Nextcloud to use shared Valkey
-8. Verify all 10 containers running
+8. Verify all 9 containers running
 
 ## Access
 

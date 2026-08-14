@@ -58,7 +58,12 @@ PG_BACKED_UP=false
 if [ -n "${ENTE_POSTGRES_DB:-}" ] && [ -n "${ENTE_POSTGRES_USER:-}" ]; then
     log "Starting PostgreSQL backup (Ente)..."
 
-    docker compose exec -T ente-postgres pg_dump \
+    docker run --rm --network host \
+        -e PGPASSWORD="${ENTE_POSTGRES_PASSWORD}" \
+        -e PGSSLMODE=require \
+        postgres:15 pg_dump \
+        -h "${ENTE_POSTGRES_HOST}" \
+        -p "${ENTE_POSTGRES_PORT:-5432}" \
         -U "${ENTE_POSTGRES_USER}" \
         "${ENTE_POSTGRES_DB}" | gzip > "${BACKUP_DIR}/${PG_FILE}"
 

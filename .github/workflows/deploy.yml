@@ -52,7 +52,7 @@ jobs:
             fi
 
             # Pull latest Docker images (only standard images, not custom-built ones)
-            docker compose pull db valkey clamav ente-postgres ente-museum ente-web vaultwarden personal-website searxng
+            docker compose pull db valkey clamav ente-museum ente-web vaultwarden personal-website searxng
 
             # Generate museum.yaml from template + .env secrets
             ./scripts/generate-museum-yaml.sh

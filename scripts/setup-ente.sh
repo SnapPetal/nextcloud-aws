@@ -42,6 +42,10 @@ read -rsp "S3 secret key: " S3_SECRET_KEY
 echo ""
 
 # Prompt for Postgres configuration
+read -rp "Ente Postgres host [ente-postgres]: " PG_HOST
+PG_HOST="${PG_HOST:-ente-postgres}"
+read -rp "Ente Postgres port [5432]: " PG_PORT
+PG_PORT="${PG_PORT:-5432}"
 read -rp "Ente Postgres user [ente]: " PG_USER
 PG_USER="${PG_USER:-ente}"
 read -rp "Ente Postgres database [ente_db]: " PG_DB
@@ -58,6 +62,16 @@ echo "Updating .env..."
 # Append Ente variables to .env if not already present
 if grep -q "ENTE_POSTGRES_USER" "$ENV_FILE" 2>/dev/null; then
     echo "Ente variables already exist in .env — updating..."
+    if grep -q '^ENTE_POSTGRES_HOST=' "$ENV_FILE"; then
+        sed -i "s|^ENTE_POSTGRES_HOST=.*|ENTE_POSTGRES_HOST=$PG_HOST|" "$ENV_FILE"
+    else
+        printf '\nENTE_POSTGRES_HOST=%s\n' "$PG_HOST" >> "$ENV_FILE"
+    fi
+    if grep -q '^ENTE_POSTGRES_PORT=' "$ENV_FILE"; then
+        sed -i "s|^ENTE_POSTGRES_PORT=.*|ENTE_POSTGRES_PORT=$PG_PORT|" "$ENV_FILE"
+    else
+        printf 'ENTE_POSTGRES_PORT=%s\n' "$PG_PORT" >> "$ENV_FILE"
+    fi
     sed -i "s/^ENTE_POSTGRES_USER=.*/ENTE_POSTGRES_USER=$PG_USER/" "$ENV_FILE"
     sed -i "s/^ENTE_POSTGRES_PASSWORD=.*/ENTE_POSTGRES_PASSWORD=$ENTE_DB_PASSWORD/" "$ENV_FILE"
     sed -i "s/^ENTE_POSTGRES_DB=.*/ENTE_POSTGRES_DB=$PG_DB/" "$ENV_FILE"
@@ -71,6 +85,8 @@ else
     cat >> "$ENV_FILE" << EOF
 
 # Ente Configuration
+ENTE_POSTGRES_HOST=$PG_HOST
+ENTE_POSTGRES_PORT=$PG_PORT
 ENTE_POSTGRES_USER=$PG_USER
 ENTE_POSTGRES_PASSWORD=$ENTE_DB_PASSWORD
 ENTE_POSTGRES_DB=$PG_DB
@@ -130,7 +146,7 @@ echo ""
 
 echo "Starting Ente containers..."
 cd "$PROJECT_DIR"
-docker compose up -d ente-postgres ente-museum ente-web
+docker compose up -d ente-museum ente-web
 
 echo ""
 echo "=== Setup Complete ==="
