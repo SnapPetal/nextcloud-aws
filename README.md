@@ -164,7 +164,6 @@ Keep the previous image tag available until login, browser-extension sync, invit
 
 `scripts/backup-to-s3.sh` runs nightly at 02:00 via cron:
 - MariaDB → S3
-- PostgreSQL (Ente) → S3
 - SQLite (Vaultwarden) → S3
 
 Keeps last 3 local copies in `/var/lib/nextcloud/data/backups/`.
@@ -301,7 +300,7 @@ set -a && . ./.env && set +a
 docker run --rm --network host \
   -e PGPASSWORD="$ENTE_POSTGRES_PASSWORD" \
   -e PGSSLMODE=require \
-  postgres:15 psql -h "$ENTE_POSTGRES_HOST" -p "${ENTE_POSTGRES_PORT:-5432}" \
+  postgres:18 psql -h "$ENTE_POSTGRES_HOST" -p "${ENTE_POSTGRES_PORT:-5432}" \
   -U "$ENTE_POSTGRES_USER" -d "$ENTE_POSTGRES_DB" \
   -c "SELECT COUNT(*) AS accounts, MIN(storage) AS min_storage, MAX(storage) AS max_storage, MIN(to_timestamp(expiry_time / 1000000.0)) AS earliest_expiry FROM subscriptions;"
 ```

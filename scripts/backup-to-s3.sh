@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Automated Database Backup to S3
-# Backs up MariaDB (Nextcloud), PostgreSQL (Ente), and SQLite (Vaultwarden),
+# Backs up MariaDB (Nextcloud) and SQLite (Vaultwarden),
 # retains last 3 local copies, and uploads to S3.
 #
 # Bucket priority:
 #   S3_DB_BACKUP_BUCKET  — dedicated bucket (setup-db-backup-bucket.sh); uploads to
-#                          mariadb/ and postgres/ prefixes
+#                          mariadb/ and vaultwarden/ prefixes
 #   S3_BUCKET            — legacy fallback; uploads to backups/ (MariaDB only)
 
 set -e
@@ -17,7 +17,6 @@ source .env
 BACKUP_DIR="/var/lib/nextcloud/data/backups"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 MARIADB_FILE="nextcloud-db-${TIMESTAMP}.sql.gz"
-PG_FILE="ente-db-${TIMESTAMP}.sql.gz"
 VW_FILE="vaultwarden-db-${TIMESTAMP}.sqlite3.gz"
 LOG_FILE="${BACKUP_DIR}/backup.log"
 
@@ -50,40 +49,6 @@ log "Cleaning old local MariaDB backups (keeping last 3)..."
 cd "$BACKUP_DIR"
 ls -1t nextcloud-db-*.sql.gz 2>/dev/null | tail -n +4 | xargs -r rm -f
 cd ~/nextcloud-aws
-
-# ── PostgreSQL backup (Ente) ────────────────────────────────────────────────
-
-PG_BACKED_UP=false
-
-if [ -n "${ENTE_POSTGRES_DB:-}" ] && [ -n "${ENTE_POSTGRES_USER:-}" ]; then
-    log "Starting PostgreSQL backup (Ente)..."
-
-    docker run --rm --network host \
-        -e PGPASSWORD="${ENTE_POSTGRES_PASSWORD}" \
-        -e PGSSLMODE=require \
-        postgres:15 pg_dump \
-        -h "${ENTE_POSTGRES_HOST}" \
-        -p "${ENTE_POSTGRES_PORT:-5432}" \
-        -U "${ENTE_POSTGRES_USER}" \
-        "${ENTE_POSTGRES_DB}" | gzip > "${BACKUP_DIR}/${PG_FILE}"
-
-    if [ ! -s "${BACKUP_DIR}/${PG_FILE}" ]; then
-        log "ERROR: PostgreSQL backup file is empty or missing!"
-        exit 1
-    fi
-
-    log "PostgreSQL backup created: ${PG_FILE} ($(du -h "${BACKUP_DIR}/${PG_FILE}" | cut -f1))"
-
-    # Retain only the last 3 PostgreSQL backups locally
-    log "Cleaning old local PostgreSQL backups (keeping last 3)..."
-    cd "$BACKUP_DIR"
-    ls -1t ente-db-*.sql.gz 2>/dev/null | tail -n +4 | xargs -r rm -f
-    cd ~/nextcloud-aws
-
-    PG_BACKED_UP=true
-else
-    log "ENTE_POSTGRES_DB or ENTE_POSTGRES_USER not set — skipping PostgreSQL backup"
-fi
 
 REMAINING=$(ls -1 "${BACKUP_DIR}"/nextcloud-db-*.sql.gz 2>/dev/null | wc -l)
 log "Local MariaDB backups remaining: ${REMAINING}"
@@ -122,12 +87,6 @@ if [ -n "${S3_DB_BACKUP_BUCKET:-}" ]; then
     log "Uploading MariaDB backup to s3://${S3_DB_BACKUP_BUCKET}/mariadb/..."
     aws s3 cp "${BACKUP_DIR}/${MARIADB_FILE}" \
         "s3://${S3_DB_BACKUP_BUCKET}/mariadb/${MARIADB_FILE}"
-
-    if [ "$PG_BACKED_UP" = true ]; then
-        log "Uploading PostgreSQL backup to s3://${S3_DB_BACKUP_BUCKET}/postgres/..."
-        aws s3 cp "${BACKUP_DIR}/${PG_FILE}" \
-            "s3://${S3_DB_BACKUP_BUCKET}/postgres/${PG_FILE}"
-    fi
 
     if [ "$VW_BACKED_UP" = true ]; then
         log "Uploading Vaultwarden backup to s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/..."

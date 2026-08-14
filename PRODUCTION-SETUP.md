@@ -112,7 +112,6 @@ The GitHub deploy workflow and `scripts/update-server.sh` run this sync before r
 
 **Automated S3 backups (daily at 2:00 AM):**
 - MariaDB → `s3://${S3_DB_BACKUP_BUCKET}/mariadb/`
-- PostgreSQL → `s3://${S3_DB_BACKUP_BUCKET}/postgres/`
 - Vaultwarden SQLite → `s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/`
 - 3 local copies retained in `/var/lib/nextcloud/data/backups/`
 - S3 objects expire after 7 days (CDK lifecycle rule)
