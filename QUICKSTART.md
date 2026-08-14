@@ -32,6 +32,8 @@ The database is included as a local MariaDB container in docker-compose.yml — 
 **Note:** Create a static IP for your instance first:
 - Go to instance → Networking tab → Create static IP
 
+For the complete stack, also create proxied DNS records for `search`, `photos`, `photos-api`, `app`, `booking`, `status`, and `vault` pointing to the same static IP.
+
 ## Step 3: Setup Nextcloud on Instance
 
 SSH into your instance:
@@ -71,6 +73,9 @@ Update with your actual values:
 
 ```env
 DOMAIN=cloud.thonbecker.biz
+
+# SearXNG secret (generate with: openssl rand -hex 32)
+SEARXNG_SECRET=your_random_searxng_secret
 
 # Database (local MariaDB container - just set passwords)
 DB_HOST=db
@@ -137,6 +142,9 @@ Start the containers:
 ```bash
 cd ~/nextcloud-aws
 docker compose up -d
+
+# Configure Nextcloud to use shared Valkey database 0
+./scripts/configure-nextcloud-valkey.sh
 ```
 
 Check logs:

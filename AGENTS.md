@@ -20,9 +20,10 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
   photos-api.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
   status.thonbecker.biz       → 127.0.0.1:19999 (Netdata)
   vault.thonbecker.biz        → 127.0.0.1:3002 (Vaultwarden)
+  search.thonbecker.biz       → 127.0.0.1:8085 (SearXNG)
 ```
 
-All eight domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). Incoming IPs seen by nginx are Cloudflare ranges — trusted proxies are configured for RFC-1918 ranges which covers the nginx→container hop. Certbot uses the `nginx` authenticator (HTTP-01 challenge), which works through Cloudflare proxy.
+All nine domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). Incoming IPs seen by nginx are Cloudflare ranges — trusted proxies are configured for RFC-1918 ranges which covers the nginx→container hop. Certbot uses the `nginx` authenticator (HTTP-01 challenge), which works through Cloudflare proxy.
 
 **Cloudflare feature settings:**
 
@@ -42,12 +43,12 @@ All eight domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles 
 | Rocket Loader | ❌ Off | Breaks Nextcloud's JavaScript — never enable |
 | Mirage / Polish | ❌ Off | Can corrupt file transfers and break previews |
 
-Nine containers in docker-compose.yml:
+Ten containers in docker-compose.yml:
 
 **Nextcloud:**
 - **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor), binds 127.0.0.1:8080 + 127.0.0.1:7867 (notify_push)
 - **nextcloud-db** — MariaDB 10.11, data at /var/lib/nextcloud/mysql
-- **nextcloud-redis** — Redis Alpine, caching + file locking
+- **valkey** — Valkey 8, shared by Nextcloud (database 0) and SearXNG (database 1)
 - **nextcloud-clamav** — ClamAV antivirus daemon on port 3310
 
 **Observability (native host service, not containerized):**
@@ -73,6 +74,9 @@ The server is headless, so Ente CLI uses `ENTE_CLI_SECRETS_PATH=~/.ente/secrets.
 **Vaultwarden:**
 - **vaultwarden** — Bitwarden-compatible password manager (vaultwarden/server), binds 127.0.0.1:3002 (proxied at vault.thonbecker.biz)
 
+**SearXNG:**
+- **searxng** — SearXNG metasearch engine, binds 127.0.0.1:8085 (proxied at search.thonbecker.biz)
+
 **Storage:** All data lives on the root filesystem under `/var/lib/nextcloud/` — app files (`/var/lib/nextcloud/app`), DB (`/var/lib/nextcloud/mysql`), and user data + backups (`/var/lib/nextcloud/data`). No block storage volume attached.
 
 ## Nextcloud App Notes
@@ -97,7 +101,7 @@ docker compose exec -u www-data app php occ config:app:set richdocuments wopi_ca
 
 Why: `proxy.php` constructs discovery XML URLs from `$_SERVER['HTTP_HOST']`. It must be fetched via the public URL so it returns `https://cloud.thonbecker.biz` URLs (not `http://localhost`) in the discovery XML. The `extra_hosts: cloud.thonbecker.biz:host-gateway` entry in `docker-compose.yml` lets the container reach nginx on the host without going through Cloudflare. `wopi_callback_url` left empty so WOPISrc uses the browser's URL rather than `http://localhost`.
 
-If document editing breaks (browser console shows `http://localhost` form-action errors), check these three settings and flush Redis: `docker compose exec redis redis-cli FLUSHALL`. Note: bundled Collabora takes 2–3 minutes to fully initialize after container start.
+If document editing breaks (browser console shows `http://localhost` form-action errors), check these three settings and flush only Nextcloud's Valkey database: `docker compose exec valkey valkey-cli -n 0 FLUSHDB`. Note: bundled Collabora takes 2–3 minutes to fully initialize after container start.
 
 ## Key Commands
 
@@ -111,6 +115,7 @@ docker compose exec -u www-data app php occ <command>
 docker compose exec -u www-data app php occ status
 docker compose exec -u www-data app php occ maintenance:mode --on
 docker compose exec -u www-data app php occ maintenance:mode --off
+./scripts/configure-nextcloud-valkey.sh
 
 # Interactive maintenance menu
 ./scripts/maintenance.sh
@@ -149,7 +154,7 @@ The Lightsail instance is 4 vCPU / 16 GB RAM. PHP is tuned with `PHP_MEMORY_LIMI
 
 ## Nginx
 
-All five virtual host configs live in `nginx/` and are symlinked into `/etc/nginx/sites-enabled/`. SSL is managed by Certbot (`authenticator = nginx` for all domains). Do not edit configs in `/etc/nginx/sites-available/` — edit the repo copies in `nginx/` instead.
+All virtual host configs live in `nginx/` and are symlinked into `/etc/nginx/sites-enabled/`. SSL is managed by Certbot (`authenticator = nginx` for all domains). Do not edit configs in `/etc/nginx/sites-available/` — edit the repo copies in `nginx/` instead.
 
 ```
 nginx/nextcloud                  → cloud.thonbecker.biz
@@ -160,6 +165,7 @@ nginx/status.thonbecker.biz      → status.thonbecker.biz
 nginx/photos.thonbecker.biz      → photos.thonbecker.biz
 nginx/photos-api.thonbecker.biz  → photos-api.thonbecker.biz
 nginx/vault.thonbecker.biz       → vault.thonbecker.biz
+nginx/search.thonbecker.biz      → search.thonbecker.biz
 ```
 
 Vaultwarden serves internally on HTTP port 80. Use the official Bitwarden clients (browser extension, mobile, desktop) pointed at `https://vault.thonbecker.biz`. Admin panel at `https://vault.thonbecker.biz/admin`.
@@ -239,7 +245,7 @@ Keeps last 3 local copies in `/var/lib/nextcloud/data/backups/`. Cron log at `/v
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, reloads nginx, then verifies all 9 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
+`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, configures shared Valkey, reloads nginx, then verifies all 10 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
 **Deployment safety notes:**
 - `docker compose up -d` only restarts containers whose image or config actually changed — services with unchanged images are not touched
@@ -268,7 +274,7 @@ aws <command>
 - `supervisord.conf` runs both apache2 and cron inside the app container (runs as root explicitly to suppress supervisord warning)
 - Nginx runs on the host (not containerized) handling SSL termination and reverse proxy
 - Netdata runs on the host (not containerized) as a native systemd service for true host-level observability
-- All six domains are Cloudflare-proxied; nginx sees Cloudflare IPs, not real client IPs
+- All nine domains are Cloudflare-proxied; nginx sees Cloudflare IPs, not real client IPs
 - Trusted proxies configured for RFC-1918 ranges to handle Nginx forwarding
 - `nextcloud-app` has `extra_hosts: cloud.thonbecker.biz:host-gateway` so internal server-to-self requests route via the Docker bridge to nginx rather than through Cloudflare
 - All nginx virtual host configs are version-controlled in `nginx/` — symlinked from `/etc/nginx/sites-enabled/`

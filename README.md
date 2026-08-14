@@ -14,14 +14,15 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
   photos-api.thonbecker.biz   → 127.0.0.1:8082 (Ente Museum API)
   status.thonbecker.biz       → 127.0.0.1:19999 (Netdata)
   vault.thonbecker.biz        → 127.0.0.1:3002 (Vaultwarden)
+  search.thonbecker.biz       → 127.0.0.1:8085 (SearXNG)
 ```
 
 ### Services
 
 **Nextcloud** — Self-hosted cloud storage and collaboration
 - **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor)
-- **nextcloud-db** — MariaDB 10.11
-- **nextcloud-redis** — Redis Alpine, caching + file locking
+- **nextcloud-db** — MariaDB 10.11 (pinned)
+- **valkey** — Valkey, shared by Nextcloud (database 0) and SearXNG (database 1)
 - **nextcloud-clamav** — ClamAV antivirus scanning for uploaded files
 
 **Ente Photos** — End-to-end encrypted photo storage
@@ -35,12 +36,16 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 **Vaultwarden** — Self-hosted Bitwarden-compatible password manager
 - **vaultwarden** — Password vault with browser extension, mobile, and desktop client support
 
+**SearXNG** — Self-hosted metasearch engine
+- **searxng** — Search frontend at `search.thonbecker.biz`
+- **valkey** — Shared Redis-compatible service; SearXNG uses database 1
+
 **Netdata** — Host-level observability (native systemd service, not containerized)
 - Alerts via AWS SNS → email
 - HTTP health checks for all services (localhost)
 - Upgrade with `./scripts/update-netdata.sh`
 
-All eight domains are Cloudflare-proxied. SSL terminates at nginx via Certbot.
+All nine domains are Cloudflare-proxied. SSL terminates at nginx via Certbot.
 
 ## PersonalWeb Runtime Secrets
 
@@ -94,6 +99,9 @@ docker compose exec -u www-data app php occ maintenance:mode --off
 # Update (pull latest images + rebuild app)
 ./scripts/update-server.sh
 
+# Configure Nextcloud to use shared Valkey database 0
+./scripts/configure-nextcloud-valkey.sh
+
 # Database backup to S3 (MariaDB + PostgreSQL + Vaultwarden SQLite)
 ./scripts/backup-to-s3.sh
 
@@ -133,7 +141,7 @@ docker compose up -d vaultwarden
 
 ### Vaultwarden upgrades
 
-The Vaultwarden image is pinned to a release tag so an unrelated deployment does not silently upgrade the password manager. Check the [Vaultwarden releases](https://github.com/dani-garcia/vaultwarden/releases) page periodically, and review security advisories and release notes before upgrading.
+Application images use the `latest` tag, while MariaDB 10.11, PostgreSQL 15, and Valkey 8 are pinned to supported major versions. Review release notes and compatibility before deploying updates.
 
 Before upgrading, confirm the nightly backup completed successfully:
 
@@ -170,7 +178,8 @@ Push to `main` triggers GitHub Actions deployment:
 4. Rebuilds Nextcloud app image
 5. Restarts changed containers
 6. Reloads nginx
-7. Verifies all 9 containers are running
+7. Configures Nextcloud to use shared Valkey
+8. Verifies all 10 containers are running
 
 Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
@@ -204,6 +213,7 @@ nginx/photos.thonbecker.biz      → photos.thonbecker.biz
 nginx/photos-api.thonbecker.biz  → photos-api.thonbecker.biz
 nginx/status.thonbecker.biz      → status.thonbecker.biz
 nginx/vault.thonbecker.biz       → vault.thonbecker.biz
+nginx/search.thonbecker.biz      → search.thonbecker.biz
 ```
 
 ## Project Structure
@@ -226,12 +236,14 @@ nextcloud-aws/
 │   └── vault.thonbecker.biz    # vault.thonbecker.biz
 ├── scripts/
 │   ├── backup-to-s3.sh         # Database backup to S3
+│   ├── configure-nextcloud-valkey.sh # Configure shared Valkey database 0
 │   ├── generate-museum-yaml.sh # Ente Museum config generator
 │   ├── maintenance.sh          # Interactive maintenance menu
 │   ├── setup-ente.sh           # Ente Photos setup (one-time)
 │   ├── setup-server.sh         # Initial server setup
 │   └── update-server.sh        # Server update script
-├── docker-compose.yml          # All 9 containers
+├── searxng/                    # SearXNG configuration and cache mount
+├── docker-compose.yml          # All 10 containers
 ├── Dockerfile                  # Custom Nextcloud image
 ├── supervisord.conf            # Apache + cron in app container
 ├── .env.example                # Environment variables template

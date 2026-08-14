@@ -52,7 +52,7 @@ jobs:
             fi
 
             # Pull latest Docker images (only standard images, not custom-built ones)
-            docker compose pull db redis clamav ente-postgres ente-museum ente-web vaultwarden personal-website
+            docker compose pull db valkey clamav ente-postgres ente-museum ente-web vaultwarden personal-website searxng
 
             # Generate museum.yaml from template + .env secrets
             ./scripts/generate-museum-yaml.sh
@@ -63,10 +63,14 @@ jobs:
             # Ensure newly added PersonalWeb virtual hosts are enabled.
             sudo ln -sfn "$PWD/nginx/app.thonbecker.biz" /etc/nginx/sites-enabled/app.thonbecker.biz
             sudo ln -sfn "$PWD/nginx/booking.thonbecker.biz" /etc/nginx/sites-enabled/booking.thonbecker.biz
+            sudo ln -sfn "$PWD/nginx/search.thonbecker.biz" /etc/nginx/sites-enabled/search.thonbecker.biz
 
             # Build and restart containers (--pull always ensures base images are fresh)
             docker compose build --pull app
-            docker compose up -d --wait --wait-timeout 180
+            docker compose up -d --remove-orphans --wait --wait-timeout 180
+
+            # Point Nextcloud at the shared Valkey service (database 0).
+            ./scripts/configure-nextcloud-valkey.sh
 
             # Reload nginx to pick up any config changes (test first so a bad
             # config never takes down all virtual hosts)

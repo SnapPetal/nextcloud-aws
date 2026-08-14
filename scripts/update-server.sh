@@ -28,13 +28,11 @@ echo "-----------------------------------"
 echo "✅ PersonalWeb OpenAI secret synced"
 
 echo ""
-echo "Step 4: Pulling latest images and rebuilding..."
+echo "Step 4: Pulling latest images and rebuilding (including SearXNG)..."
 echo "-----------------------------------"
 docker compose pull
 docker compose build --pull --no-cache
-docker compose up -d
-sudo systemctl reload nginx
-docker image prune -f
+docker compose up -d --remove-orphans
 
 echo ""
 echo "Step 5: Waiting for Nextcloud to be ready..."
@@ -51,6 +49,10 @@ for i in {1..30}; do
     sleep 2
 done
 echo ""
+
+./scripts/configure-nextcloud-valkey.sh
+sudo systemctl reload nginx
+docker image prune -f
 
 echo ""
 echo "=========================================="

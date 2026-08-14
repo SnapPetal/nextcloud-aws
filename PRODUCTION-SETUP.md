@@ -33,7 +33,7 @@ S3 available for overflow storage if needed.
 
 **SSL/TLS:** Let's Encrypt (auto-renews via Certbot)
 **Web Server:** Nginx reverse proxy on host
-**CDN/Proxy:** Cloudflare (all six domains proxied)
+**CDN/Proxy:** Cloudflare (all nine domains proxied)
 
 **Container Ports (localhost only):**
 - Nextcloud: 127.0.0.1:8080
@@ -41,6 +41,7 @@ S3 available for overflow storage if needed.
 - Ente API: 127.0.0.1:8082
 - Personal Website: 127.0.0.1:3003
 - Vaultwarden: 127.0.0.1:3002
+- SearXNG: 127.0.0.1:8085
 - Netdata: 127.0.0.1:19999 (native service)
 
 **Firewall (Lightsail):**
@@ -50,16 +51,17 @@ S3 available for overflow storage if needed.
 
 ## Docker Configuration
 
-**Containers (9 total):**
+**Containers (10 total):**
 - `nextcloud-app`: Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor)
-- `nextcloud-db`: MariaDB 10.11
-- `nextcloud-redis`: Redis Alpine (caching + file locking)
+- `nextcloud-db`: MariaDB 10.11 (pinned)
+- `valkey`: Valkey shared by Nextcloud (database 0) and SearXNG (database 1)
 - `nextcloud-clamav`: ClamAV antivirus
 - `ente-museum`: Ente API server
 - `ente-postgres`: PostgreSQL 15
 - `ente-web`: Ente Photos web app
 - `personal-website`: Spring Boot app from public ECR, configured by `PERSONAL_*` and `SKATETRICKS_*` env vars from `.env`
 - `vaultwarden`: Bitwarden-compatible password manager
+- `searxng`: SearXNG metasearch engine at `search.thonbecker.biz`
 
 **Volumes:**
 - `/var/lib/nextcloud/app` → `/var/www/html` (application files)
@@ -101,8 +103,10 @@ The GitHub deploy workflow and `scripts/update-server.sh` run this sync before r
 - Client max body size: 10G
 - Timeouts: 600s
 
-**Redis:**
-- File locking and caching enabled
+**Valkey:**
+- Redis-compatible cache shared by Nextcloud and SearXNG
+- Nextcloud uses database 0; SearXNG uses database 1
+- Run `./scripts/configure-nextcloud-valkey.sh` after service migration or recovery
 
 ## Backup Strategy
 
@@ -147,7 +151,8 @@ The GitHub deploy workflow and `scripts/update-server.sh` run this sync before r
 4. Rebuild Nextcloud app image
 5. Restart changed containers
 6. Reload nginx
-7. Verify all 9 containers running
+7. Configure Nextcloud to use shared Valkey
+8. Verify all 10 containers running
 
 ## Access
 

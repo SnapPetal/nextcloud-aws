@@ -1,0 +1,22 @@
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "Private Search"
+
+search:
+  safe_search: 1
+  autocomplete: "duckduckgo"
+  formats:
+    - html
+
+server:
+  # The container replaces this with SEARXNG_SECRET at startup.
+  secret_key: "change-me"
+  limiter: true
+  image_proxy: true
+  public_instance: false
+
+valkey:
+  # The container replaces this with SEARXNG_VALKEY_URL at startup.
+  url: valkey://valkey:6379/1

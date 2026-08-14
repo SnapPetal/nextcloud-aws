@@ -72,7 +72,8 @@ update_containers() {
     docker compose pull
     echo ""
     echo -e "${YELLOW}Recreating containers with new images...${NC}"
-    docker compose up -d
+    docker compose up -d --remove-orphans
+    ./scripts/configure-nextcloud-valkey.sh
     echo ""
     echo -e "${GREEN}Update complete!${NC}"
     docker compose ps
@@ -174,7 +175,8 @@ check_disk() {
 
 clear_cache() {
     echo -e "${YELLOW}Clearing Redis cache...${NC}"
-    docker compose exec redis redis-cli FLUSHALL
+    # Nextcloud uses database 0; do not flush SearXNG's database 1.
+    docker compose exec valkey valkey-cli -n 0 FLUSHDB
     echo -e "${GREEN}Redis cache cleared${NC}"
 }
 
