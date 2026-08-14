@@ -23,7 +23,7 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
   search.thonbecker.biz       → 127.0.0.1:8085 (SearXNG)
 ```
 
-All nine domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). Incoming IPs seen by nginx are Cloudflare ranges — trusted proxies are configured for RFC-1918 ranges which covers the nginx→container hop. Certbot uses the `nginx` authenticator (HTTP-01 challenge), which works through Cloudflare proxy.
+All nine domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). Incoming IPs seen by nginx are Cloudflare ranges — trusted proxies are configured for RFC-1918 ranges which covers the nginx→container hop. Certbot uses the Cloudflare DNS authenticator (DNS-01 challenge), creating temporary `_acme-challenge` TXT records with a narrowly scoped API token.
 
 **Cloudflare feature settings:**
 
@@ -154,7 +154,7 @@ The Lightsail instance is 4 vCPU / 16 GB RAM. PHP is tuned with `PHP_MEMORY_LIMI
 
 ## Nginx
 
-All virtual host configs live in `nginx/` and are symlinked into `/etc/nginx/sites-enabled/`. SSL is managed by Certbot (`authenticator = nginx` for all domains). Do not edit configs in `/etc/nginx/sites-available/` — edit the repo copies in `nginx/` instead.
+All virtual host configs live in `nginx/` and are symlinked into `/etc/nginx/sites-enabled/`. SSL is managed by Certbot with the Cloudflare DNS-01 authenticator. The credentials file is server-only at `/root/.secrets/certbot/cloudflare.ini` with mode `600`; never commit it. Do not edit configs in `/etc/nginx/sites-available/` — edit the repo copies in `nginx/` instead.
 
 ```
 nginx/nextcloud                  → cloud.thonbecker.biz

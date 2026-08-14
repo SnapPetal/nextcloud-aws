@@ -157,24 +157,36 @@ Wait until you see "Nextcloud is accessible" messages. Press Ctrl+C to exit logs
 
 ## Step 7: Install SSL Certificate
 
-Install Certbot with Nginx plugin:
+Install Certbot and the Cloudflare DNS plugin:
 
 ```bash
-sudo apt install python3-certbot-nginx -y
+sudo apt install python3-certbot-nginx python3-certbot-dns-cloudflare -y
 ```
 
-Get SSL certificate:
+Create a restricted Cloudflare API token for the `thonbecker.biz` zone with DNS write access, then store it server-side:
 
 ```bash
-sudo certbot --nginx -d cloud.thonbecker.biz
+sudo install -d -m 700 /root/.secrets/certbot
+sudo nano /root/.secrets/certbot/cloudflare.ini
+sudo chmod 600 /root/.secrets/certbot/cloudflare.ini
 ```
 
-Follow the prompts:
-- Enter your email
-- Agree to terms
-- Choose to redirect HTTP to HTTPS (option 2)
+The credentials file should contain:
 
-The certificate will auto-renew via cron.
+```ini
+dns_cloudflare_api_token = your_cloudflare_api_token
+```
+
+Request the certificate with DNS-01 validation:
+
+```bash
+sudo certbot certonly \
+  --dns-cloudflare \
+  --dns-cloudflare-credentials /root/.secrets/certbot/cloudflare.ini \
+  -d cloud.thonbecker.biz
+```
+
+The certificate will auto-renew via `certbot.timer`. Test renewal with `sudo certbot renew --dry-run --no-random-sleep-on-renew`.
 
 ## Step 8: Access Nextcloud
 
