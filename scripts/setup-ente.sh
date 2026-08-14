@@ -41,9 +41,12 @@ read -rp "S3 access key: " S3_ACCESS_KEY
 read -rsp "S3 secret key: " S3_SECRET_KEY
 echo ""
 
-# Prompt for Postgres configuration
-read -rp "Ente Postgres host [ente-postgres]: " PG_HOST
-PG_HOST="${PG_HOST:-ente-postgres}"
+# Prompt for managed Postgres configuration
+read -rp "Ente Postgres host: " PG_HOST
+if [ -z "$PG_HOST" ]; then
+    echo "Error: an external PostgreSQL host is required." >&2
+    exit 1
+fi
 read -rp "Ente Postgres port [5432]: " PG_PORT
 PG_PORT="${PG_PORT:-5432}"
 read -rp "Ente Postgres user [ente]: " PG_USER
