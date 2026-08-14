@@ -166,9 +166,9 @@ sudo apt install python3-certbot-nginx python3-certbot-dns-cloudflare -y
 Create a restricted Cloudflare API token for the `thonbecker.biz` zone with DNS write access, then store it server-side:
 
 ```bash
-sudo install -d -m 700 /root/.secrets/certbot
-sudo nano /root/.secrets/certbot/cloudflare.ini
-sudo chmod 600 /root/.secrets/certbot/cloudflare.ini
+sudo nano /etc/letsencrypt/cloudflare.ini
+sudo chown root:root /etc/letsencrypt/cloudflare.ini
+sudo chmod 600 /etc/letsencrypt/cloudflare.ini
 ```
 
 The credentials file should contain:
@@ -182,7 +182,7 @@ Request the certificate with DNS-01 validation:
 ```bash
 sudo certbot certonly \
   --dns-cloudflare \
-  --dns-cloudflare-credentials /root/.secrets/certbot/cloudflare.ini \
+  --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
   -d cloud.thonbecker.biz
 ```
 

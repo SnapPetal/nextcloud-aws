@@ -154,7 +154,7 @@ The Lightsail instance is 4 vCPU / 16 GB RAM. PHP is tuned with `PHP_MEMORY_LIMI
 
 ## Nginx
 
-All virtual host configs live in `nginx/` and are symlinked into `/etc/nginx/sites-enabled/`. SSL is managed by Certbot with the Cloudflare DNS-01 authenticator. The credentials file is server-only at `/root/.secrets/certbot/cloudflare.ini` with mode `600`; never commit it. Do not edit configs in `/etc/nginx/sites-available/` — edit the repo copies in `nginx/` instead.
+All virtual host configs live in `nginx/` and are symlinked into `/etc/nginx/sites-enabled/`. SSL is managed by Certbot with the Cloudflare DNS-01 authenticator. The credentials file is server-only at `/etc/letsencrypt/cloudflare.ini` with mode `600`; never commit it. Do not edit configs in `/etc/nginx/sites-available/` — edit the repo copies in `nginx/` instead.
 
 ```
 nginx/nextcloud                  → cloud.thonbecker.biz

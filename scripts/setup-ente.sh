@@ -125,7 +125,7 @@ sudo systemctl reload nginx
 echo ""
 echo "Ensure Let’s Encrypt certificates exist using Cloudflare DNS-01:"
 echo "  sudo apt install python3-certbot-dns-cloudflare -y"
-echo "  sudo certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/certbot/cloudflare.ini -d photos.thonbecker.biz -d photos-api.thonbecker.biz"
+echo "  sudo certbot certonly --dns-cloudflare --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini -d photos.thonbecker.biz -d photos-api.thonbecker.biz"
 echo ""
 
 echo "Starting Ente containers..."
