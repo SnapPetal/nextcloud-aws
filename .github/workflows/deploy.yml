@@ -33,6 +33,9 @@ jobs:
             # Force tracked repo content to exactly match origin/main while leaving
             # untracked local files like .env and generated configs alone.
             git fetch origin
+            # Docker may create bind-mounted SearXNG config files as root. Restore
+            # ownership before Git updates the tracked files during deployment.
+            sudo chown -R "$(id -u):$(id -g)" "$PWD/searxng/core-config"
             git checkout main
             git reset --hard origin/main
 
