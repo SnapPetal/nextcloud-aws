@@ -5,7 +5,7 @@ general:
   instance_name: "Private Search"
 
 search:
-  safe_search: 1
+  safe_search: 2
   autocomplete: "duckduckgo"
   formats:
     - html
