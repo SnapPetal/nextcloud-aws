@@ -1,0 +1,11 @@
+[botdetection]
+# SearXNG is reached through the host nginx reverse proxy. The request
+# arrives at the container from Docker's private bridge network, while nginx
+# forwards the original client address in X-Forwarded-For/X-Real-IP.
+trusted_proxies = [
+  "127.0.0.0/8",
+  "::1",
+  "10.0.0.0/8",
+  "172.16.0.0/12",
+  "192.168.0.0/16",
+]

@@ -30,9 +30,18 @@ echo "✅ PersonalWeb OpenAI secret synced"
 echo ""
 echo "Step 4: Pulling latest images and rebuilding (including SearXNG)..."
 echo "-----------------------------------"
+if [ ! -f searxng/core-config/limiter.toml ]; then
+    echo "ERROR: searxng/core-config/limiter.toml is missing"
+    echo "SearXNG limiter configuration is required when SEARXNG_LIMITER=true."
+    exit 1
+fi
 docker compose pull
 docker compose build --pull --no-cache
 docker compose up -d --remove-orphans
+
+# SearXNG reads limiter.toml only during startup. Recreate it explicitly so
+# weekly redeploys apply configuration changes even when the image is unchanged.
+docker compose up -d --force-recreate searxng
 
 echo ""
 echo "Step 5: Waiting for Nextcloud to be ready..."
