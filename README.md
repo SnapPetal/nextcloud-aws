@@ -102,7 +102,7 @@ docker compose exec -u www-data app php occ maintenance:mode --off
 # Configure Nextcloud to use shared Valkey database 0
 ./scripts/configure-nextcloud-valkey.sh
 
-# Database backup to S3 (MariaDB + PostgreSQL + Vaultwarden SQLite)
+# Database backup to S3 (MariaDB + Vaultwarden SQLite)
 ./scripts/backup-to-s3.sh
 
 # Reload nginx after config changes
