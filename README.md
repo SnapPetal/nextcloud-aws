@@ -164,7 +164,8 @@ Keep the previous image tag available until login, browser-extension sync, invit
 
 `scripts/backup-to-s3.sh` runs nightly at 02:00 via cron:
 - MariaDB → S3
-- SQLite (Vaultwarden) → S3
+- Vaultwarden consistent SQLite snapshot → S3
+- Vaultwarden recovery data (RSA key, attachments, Sends, and config) → S3
 
 Keeps last 3 local copies in `/var/lib/nextcloud/data/backups/`.
 
@@ -213,6 +214,13 @@ nginx/photos-api.thonbecker.biz  → photos-api.thonbecker.biz
 nginx/status.thonbecker.biz      → status.thonbecker.biz
 nginx/vault.thonbecker.biz       → vault.thonbecker.biz
 nginx/search.thonbecker.biz      → search.thonbecker.biz
+```
+
+Public HTTP/HTTPS ingress on the Lightsail instance is restricted to
+Cloudflare's published networks. Reapply the current ranges when needed with:
+
+```bash
+./scripts/configure-lightsail-cloudflare-firewall.sh
 ```
 
 ## Project Structure
