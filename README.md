@@ -171,7 +171,10 @@ Keeps last 3 local copies in `/var/lib/nextcloud/data/backups/`.
 
 ## CI/CD
 
-Push to `main` triggers GitHub Actions deployment:
+Pull requests run actionlint, shell-syntax, Docker Compose, generated Ente
+configuration, and whitespace validation. A push to `main` repeats those checks before the
+GitHub Actions deployment:
+
 1. Pulls latest code on server
 2. Restarts Netdata if config changed
 3. Pulls latest Docker images
@@ -209,6 +212,8 @@ Virtual host configs in `nginx/`, symlinked to `/etc/nginx/sites-enabled/`:
 ```
 nginx/nextcloud                  → cloud.thonbecker.biz
 nginx/www.thonbecker.biz         → thonbecker.biz
+nginx/app.thonbecker.biz         → app.thonbecker.biz
+nginx/booking.thonbecker.biz     → booking.thonbecker.biz
 nginx/photos.thonbecker.biz      → photos.thonbecker.biz
 nginx/photos-api.thonbecker.biz  → photos-api.thonbecker.biz
 nginx/status.thonbecker.biz      → status.thonbecker.biz
@@ -237,10 +242,13 @@ nextcloud-aws/
 ├── nginx/
 │   ├── nextcloud               # cloud.thonbecker.biz
 │   ├── www.thonbecker.biz      # thonbecker.biz
+│   ├── app.thonbecker.biz      # app.thonbecker.biz
+│   ├── booking.thonbecker.biz  # booking.thonbecker.biz
 │   ├── photos.thonbecker.biz   # photos.thonbecker.biz
 │   ├── photos-api.thonbecker.biz # photos-api.thonbecker.biz
 │   ├── status.thonbecker.biz   # status.thonbecker.biz
-│   └── vault.thonbecker.biz    # vault.thonbecker.biz
+│   ├── vault.thonbecker.biz    # vault.thonbecker.biz
+│   └── search.thonbecker.biz   # search.thonbecker.biz
 ├── scripts/
 │   ├── backup-to-s3.sh         # Database backup to S3
 │   ├── configure-nextcloud-valkey.sh # Configure shared Valkey database 0

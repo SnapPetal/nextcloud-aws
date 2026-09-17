@@ -1,0 +1,39 @@
+name: Validate configuration
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Lint GitHub Actions workflows
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color
+
+      - name: Check shell syntax
+        run: |
+          set -euo pipefail
+          for script in scripts/*.sh; do
+            bash -n "$script"
+          done
+
+      - name: Validate Docker Compose
+        run: docker compose --env-file .env.example config -q
+
+      - name: Check generated Ente configuration
+        run: |
+          cp .env.example .env
+          ./scripts/generate-museum-yaml.sh
+          test -s ente/museum.yaml
+
+      - name: Check whitespace errors
+        run: git diff --check

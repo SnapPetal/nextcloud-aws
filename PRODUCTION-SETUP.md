@@ -56,8 +56,7 @@ S3 available for overflow storage if needed.
 - `nextcloud-db`: MariaDB 10.11 (pinned)
 - `valkey`: Valkey shared by Nextcloud (database 0) and SearXNG (database 1)
 - `nextcloud-clamav`: ClamAV antivirus
-- `ente-museum`: Ente API server
-- `ente-museum`: uses managed PostgreSQL for its separate `ente_db` database
+- `ente-museum`: Ente API server using the managed PostgreSQL `ente_db` database
 - `ente-web`: Ente Photos web app
 - `personal-website`: Spring Boot app from public ECR, configured by `PERSONAL_*` and `SKATETRICKS_*` env vars from `.env`
 - `vaultwarden`: Bitwarden-compatible password manager
@@ -123,7 +122,7 @@ The GitHub deploy workflow and `scripts/update-server.sh` run this sync before r
 **Netdata** (native systemd service at status.thonbecker.biz):
 - HTTP health checks for all services (via localhost)
 - Alerts via AWS SNS → email
-- Config in `netdata/`, symlinked to `/etc/netdata/`
+- Config in `netdata/`, copied to `/etc/netdata/` by the deploy workflow
 - Upgrade with `./scripts/update-netdata.sh`
 
 **Health checks:**

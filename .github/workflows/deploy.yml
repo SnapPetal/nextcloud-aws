@@ -18,6 +18,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Lint GitHub Actions workflows
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color
+
+      - name: Validate repository configuration
+        run: |
+          set -euo pipefail
+          for script in scripts/*.sh; do
+            bash -n "$script"
+          done
+          docker compose --env-file .env.example config -q
+          cp .env.example .env
+          ./scripts/generate-museum-yaml.sh
+          test -s ente/museum.yaml
+          git diff --check
+
       - name: Deploy to Lightsail
         uses: appleboy/ssh-action@v1.2.5
         with:
@@ -30,14 +47,19 @@ jobs:
             # Navigate to project directory
             cd ~/nextcloud-aws || exit 1
 
-            # Force tracked repo content to exactly match origin/main while leaving
-            # untracked local files like .env and generated configs alone.
+            # Update tracked files without deleting local edits or untracked
+            # secrets/configuration. Refuse deployment if tracked files changed.
             git fetch origin
             # Docker may create bind-mounted SearXNG config files as root. Restore
             # ownership before Git updates the tracked files during deployment.
             sudo chown -R "$(id -u):$(id -g)" "$PWD/searxng/core-config"
+            if ! git diff --quiet || ! git diff --cached --quiet; then
+              echo "Tracked working-tree changes detected; refusing deployment."
+              git status --short
+              exit 1
+            fi
             git checkout main
-            git reset --hard origin/main
+            git pull --ff-only origin main
 
             # Copy repo-managed Netdata configs and restart if any changed.
             if git diff ORIG_HEAD HEAD --name-only | grep -q '^netdata/'; then
@@ -63,10 +85,15 @@ jobs:
             # Sync PersonalWeb OpenAI key from AWS Secrets Manager into .env
             ./scripts/sync-personalweb-openai-secret.sh
 
-            # Ensure newly added PersonalWeb virtual hosts are enabled.
-            sudo ln -sfn "$PWD/nginx/app.thonbecker.biz" /etc/nginx/sites-enabled/app.thonbecker.biz
-            sudo ln -sfn "$PWD/nginx/booking.thonbecker.biz" /etc/nginx/sites-enabled/booking.thonbecker.biz
-            sudo ln -sfn "$PWD/nginx/search.thonbecker.biz" /etc/nginx/sites-enabled/search.thonbecker.biz
+            # Keep every repo-managed virtual host enabled.
+            for config in nginx/*; do
+              target="/etc/nginx/sites-enabled/$(basename "$config")"
+              if [ -e "$target" ] && [ ! -L "$target" ]; then
+                echo "Refusing to replace regular nginx file: $target"
+                exit 1
+              fi
+              sudo ln -sfn "$PWD/$config" "$target"
+            done
 
             # Build and restart containers (--pull always ensures base images are fresh)
             docker compose build --pull app

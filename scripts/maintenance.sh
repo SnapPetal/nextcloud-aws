@@ -3,7 +3,10 @@
 # Nextcloud Maintenance Script
 # Common maintenance tasks for Nextcloud on AWS Lightsail
 
-set -e
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Colors
 RED='\033[0;31m'
@@ -13,7 +16,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Change to project directory
-cd ~/nextcloud-aws || exit 1
+cd "$PROJECT_DIR"
 
 show_menu() {
     echo ""
@@ -113,30 +116,18 @@ backup_database() {
     echo -e "${YELLOW}Creating database backup...${NC}"
     sudo mkdir -p "$BACKUP_DIR"
 
-    # Read database credentials from .env
+    # Read the local MariaDB credentials from .env.
+    set -a
     source .env
+    set +a
 
-    if [[ -n "$DB_HOST" ]]; then
-        # External database
-        echo -e "${BLUE}Backing up external Lightsail database...${NC}"
-        read -sp "Enter database password: " DB_PASS
-        echo ""
+    docker compose exec -T db mariadb-dump \
+        -u root -p"${DB_ROOT_PASSWORD}" \
+        --single-transaction \
+        "${DB_NAME}" > "$BACKUP_FILE"
 
-        # Check if MySQL or PostgreSQL
-        if mysqldump --version &> /dev/null; then
-            mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" > "$BACKUP_FILE"
-        elif pg_dump --version &> /dev/null; then
-            PGPASSWORD="$DB_PASS" pg_dump -h "$DB_HOST" -U "$DB_USER" "$DB_NAME" > "$BACKUP_FILE"
-        else
-            echo -e "${RED}Neither mysql-client nor postgresql-client is installed!${NC}"
-            echo "Install with: sudo apt install mysql-client -y"
-            echo "Or for PostgreSQL: sudo apt install postgresql-client -y"
-            return 1
-        fi
-    fi
-
-    if [ -f "$BACKUP_FILE" ]; then
-        sudo chown $USER:$USER "$BACKUP_FILE"
+    if [ -s "$BACKUP_FILE" ]; then
+        sudo chown "$USER:$USER" "$BACKUP_FILE"
         echo -e "${GREEN}Database backup created: $BACKUP_FILE${NC}"
         ls -lh "$BACKUP_FILE"
     else
@@ -152,12 +143,12 @@ backup_files() {
     sudo mkdir -p "$BACKUP_DIR"
 
     sudo tar -czf "$BACKUP_FILE" \
-        -C /var/lib/nextcloud/data \
-        --exclude='backups' \
-        nextcloud data
+        --exclude='data/backups' \
+        -C /var/lib/nextcloud \
+        app data/data
 
     if [ -f "$BACKUP_FILE" ]; then
-        sudo chown $USER:$USER "$BACKUP_FILE"
+        sudo chown "$USER:$USER" "$BACKUP_FILE"
         echo -e "${GREEN}File backup created: $BACKUP_FILE${NC}"
         ls -lh "$BACKUP_FILE"
     else

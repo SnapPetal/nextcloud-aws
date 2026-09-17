@@ -123,7 +123,7 @@ docker compose exec -u www-data app php occ maintenance:mode --off
 # Update (pull latest images + rebuild app)
 ./scripts/update-server.sh
 
-# Database backup to S3 (MariaDB + PostgreSQL)
+# Database backup to S3 (MariaDB + Vaultwarden SQLite)
 ./scripts/backup-to-s3.sh
 
 # Reload nginx after config changes

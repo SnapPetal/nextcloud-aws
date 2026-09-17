@@ -1,252 +1,191 @@
-# Quick Start Guide - Nextcloud on AWS Lightsail
+# Production Bootstrap Guide
 
-Your Nextcloud will be accessible at: **https://cloud.thonbecker.biz**
+This repository describes the production stack at `thonbecker.biz`. It is not a
+generic one-container Nextcloud installer: the full deployment also expects an
+external PostgreSQL service, S3 buckets, AWS credentials, Cloudflare DNS, and
+TLS certificates matching the paths in `nginx/`.
 
-## Step 1: Create AWS Lightsail Resources
+## 1. Create the Lightsail host
 
-### A. Create Lightsail Instance
+Create an Ubuntu 22.04 Lightsail instance with 16 GB RAM, 4 vCPU, a static IP,
+and enough root-disk capacity for `/var/lib/nextcloud`. MariaDB runs locally in
+Docker; do not create a separate database for Nextcloud.
 
-1. Go to [AWS Lightsail Console](https://lightsail.aws.amazon.com/)
-2. Click **Create instance**
-3. Select:
-   - **Region**: US East (N. Virginia) or your preferred region
-   - **Platform**: Linux/Unix
-   - **Blueprint**: Ubuntu 22.04 LTS
-   - **Plan**: 16 GB RAM, 4 vCPU
-   - **Name**: `nextcloud-prod`
-4. Click **Create instance**
+Create Cloudflare-proxied DNS records pointing at the static IP for:
 
-### B. Database (Included)
+- `thonbecker.biz` and `www.thonbecker.biz`
+- `cloud.thonbecker.biz`
+- `app.thonbecker.biz` and `booking.thonbecker.biz`
+- `photos.thonbecker.biz` and `photos-api.thonbecker.biz`
+- `status.thonbecker.biz`
+- `vault.thonbecker.biz`
+- `search.thonbecker.biz`
 
-The database is included as a local MariaDB container in docker-compose.yml — no external database setup needed.
-
-## Step 2: Configure DNS
-
-1. Go to your domain registrar (where you manage `thonbecker.biz`)
-2. Add an A record:
-   - **Name/Host**: `cloud`
-   - **Type**: A
-   - **Value**: Your Lightsail instance's static IP (get from instance details)
-   - **TTL**: 300 (5 minutes)
-
-**Note:** Create a static IP for your instance first:
-- Go to instance → Networking tab → Create static IP
-
-For the complete stack, also create proxied DNS records for `search`, `photos`, `photos-api`, `app`, `booking`, `status`, and `vault` pointing to the same static IP.
-
-## Step 3: Setup Nextcloud on Instance
-
-SSH into your instance:
+## 2. Prepare the host
 
 ```bash
 ssh ubuntu@<your-instance-ip>
-```
-
-Clone the repository:
-
-```bash
 git clone https://github.com/SnapPetal/nextcloud-aws.git
 cd nextcloud-aws
-```
-
-Run the setup script:
-
-```bash
-chmod +x scripts/setup-server.sh
 ./scripts/setup-server.sh
 ```
 
-The script will:
-- Install Docker
-- Create necessary directories
-- Set up `.env` file
+The setup script installs the host packages, installs Docker when needed,
+creates the persistent root-filesystem directories, and copies `.env.example`
+to `.env`. If it adds the current user to the Docker group, log out and back in
+before continuing.
 
-## Step 4: Configure Environment
+## 3. Configure dependencies and secrets
 
-Edit `.env` file:
+Edit `.env` and replace every placeholder needed by the enabled services:
 
 ```bash
 nano .env
 ```
 
-Update with your actual values:
+The core Nextcloud values are:
 
 ```env
 DOMAIN=cloud.thonbecker.biz
-
-# SearXNG secret (generate with: openssl rand -hex 32)
-SEARXNG_SECRET=your_random_searxng_secret
-
-# Database (local MariaDB container - just set passwords)
-DB_HOST=db
+DB_ROOT_PASSWORD=<strong-local-mariadb-root-password>
 DB_NAME=nextcloud
 DB_USER=nextcloud
-DB_PASSWORD=your_secure_password
-MYSQL_ROOT_PASSWORD=your_secure_root_password
-
-# Data storage path
+DB_PASSWORD=<strong-local-mariadb-password>
 DATA_PATH=/var/lib/nextcloud/data
+SEARXNG_SECRET=<output-of-openssl-rand-hex-32>
 ```
 
-Save and exit (Ctrl+X, Y, Enter)
+There is no `DB_HOST` or `MYSQL_ROOT_PASSWORD` setting: Compose uses the local
+`db` service and reads `DB_ROOT_PASSWORD`.
 
-## Step 5: Setup Nginx Reverse Proxy
+Before starting the full stack, also configure:
 
-Install Nginx:
+- Ente's external PostgreSQL database, S3 bucket, encryption keys, and SMTP
+  values (`ENTE_*`). The external database and credentials must already exist.
+- PersonalWeb's external PostgreSQL database, AWS/media settings, Nextcloud app
+  password, and optional PostHog settings (`PERSONAL_*`, `SKATETRICKS_*`).
+- Vaultwarden SMTP and Argon2 admin-token hash (`VAULTWARDEN_*`).
+- Backup and Netdata AWS settings when those features are enabled.
+
+Generate the ignored Ente configuration after `.env` is complete:
 
 ```bash
-sudo apt install nginx -y
+./scripts/generate-museum-yaml.sh
 ```
 
-Create Nginx configuration:
+For production, sync the PersonalWeb runtime secrets before each restart:
 
 ```bash
-sudo nano /etc/nginx/sites-available/nextcloud
+./scripts/sync-personalweb-openai-secret.sh
 ```
 
-Paste this configuration:
+## 4. Issue TLS certificates
 
-```nginx
-server {
-    listen 80;
-    server_name cloud.thonbecker.biz;
+Install a narrowly scoped Cloudflare API token at
+`/etc/letsencrypt/cloudflare.ini`:
 
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        client_max_body_size 10G;
-        proxy_request_buffering off;
-    }
-}
+```ini
+dns_cloudflare_api_token = <cloudflare-dns-token>
 ```
-
-Save and exit (Ctrl+X, Y, Enter)
-
-Enable the site:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/nextcloud /etc/nginx/sites-enabled/
-sudo rm /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
-## Step 6: Deploy Nextcloud
-
-Start the containers:
-
-```bash
-cd ~/nextcloud-aws
-docker compose up -d
-
-# Configure Nextcloud to use shared Valkey database 0
-./scripts/configure-nextcloud-valkey.sh
-```
-
-Check logs:
-
-```bash
-docker compose logs -f
-```
-
-Wait until you see "Nextcloud is accessible" messages. Press Ctrl+C to exit logs.
-
-## Step 7: Install SSL Certificate
-
-Install Certbot and the Cloudflare DNS plugin:
-
-```bash
-sudo apt install python3-certbot-nginx python3-certbot-dns-cloudflare -y
-```
-
-Create a restricted Cloudflare API token for the `thonbecker.biz` zone with DNS write access, then store it server-side:
-
-```bash
-sudo nano /etc/letsencrypt/cloudflare.ini
 sudo chown root:root /etc/letsencrypt/cloudflare.ini
 sudo chmod 600 /etc/letsencrypt/cloudflare.ini
 ```
 
-The credentials file should contain:
-
-```ini
-dns_cloudflare_api_token = your_cloudflare_api_token
-```
-
-Request the certificate with DNS-01 validation:
+The certificate names must match the paths committed in the nginx files. Issue
+or restore these certificates before enabling the virtual hosts:
 
 ```bash
-sudo certbot certonly \
-  --dns-cloudflare \
-  --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini \
+CF_ARGS="--dns-cloudflare --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini"
+
+sudo certbot certonly $CF_ARGS --cert-name cloud.thonbecker.biz \
   -d cloud.thonbecker.biz
+sudo certbot certonly $CF_ARGS --cert-name thonbecker.biz \
+  -d thonbecker.biz -d www.thonbecker.biz -d app.thonbecker.biz \
+  -d booking.thonbecker.biz
+sudo certbot certonly $CF_ARGS --cert-name photos.thonbecker.biz-0001 \
+  -d photos.thonbecker.biz -d photos-api.thonbecker.biz
+sudo certbot certonly $CF_ARGS --cert-name status.thonbecker.biz \
+  -d status.thonbecker.biz
+sudo certbot certonly $CF_ARGS --cert-name vault.thonbecker.biz \
+  -d vault.thonbecker.biz
+sudo certbot certonly $CF_ARGS --cert-name search.thonbecker.biz \
+  -d search.thonbecker.biz
 ```
 
-The certificate will auto-renew via `certbot.timer`. Test renewal with `sudo certbot renew --dry-run --no-random-sleep-on-renew`.
+Test automatic renewal with `sudo certbot renew --dry-run`.
 
-## Step 8: Access Nextcloud
+On a new installation, `./scripts/setup-ente.sh` can populate the Ente values,
+generate `museum.yaml`, link the two Ente nginx files, and start Ente. Run it
+only after the photos certificate above exists.
 
-1. Open browser and go to: **https://cloud.thonbecker.biz**
-2. Create admin account
-3. Database is already configured via environment variables
-4. Complete setup wizard
+## 5. Enable nginx
 
-## Step 9: Configure GitHub Actions (Optional)
-
-Generate SSH key for automated deployments:
+The repo copies are authoritative; do not edit files under
+`/etc/nginx/sites-available`.
 
 ```bash
-ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github-actions -N ""
-cat ~/.ssh/github-actions.pub >> ~/.ssh/authorized_keys
-cat ~/.ssh/github-actions
+if [ -L /etc/nginx/sites-enabled/default ]; then
+  sudo unlink /etc/nginx/sites-enabled/default
+elif [ -e /etc/nginx/sites-enabled/default ]; then
+  sudo mv /etc/nginx/sites-enabled/default \
+    "/etc/nginx/sites-enabled/default.disabled-$(date +%Y%m%d-%H%M%S)"
+fi
+for config in nginx/*; do
+  target="/etc/nginx/sites-enabled/$(basename "$config")"
+  if [ -e "$target" ] && [ ! -L "$target" ]; then
+    echo "Refusing to replace regular nginx file: $target" >&2
+    exit 1
+  fi
+  sudo ln -sfn "$PWD/$config" "$target"
+done
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
-Copy the private key output.
+The static-site virtual host expects content at `/var/www/thonbecker-static`.
+Netdata is a native service expected to listen on `127.0.0.1:19999`; its tracked
+configuration lives in `netdata/`.
 
-Add GitHub secrets:
-1. Go to https://github.com/SnapPetal/nextcloud-aws/settings/secrets/actions
-2. Add:
-   - `LIGHTSAIL_HOST`: Your instance's static IP
-   - `LIGHTSAIL_USER`: `ubuntu`
-   - `LIGHTSAIL_SSH_KEY`: The private key you just copied
-
-Now pushes to main branch will auto-deploy!
-
-## Maintenance
-
-Use the maintenance script:
+## 6. Validate and deploy
 
 ```bash
-cd ~/nextcloud-aws
-./scripts/maintenance.sh
+docker compose config -q
+docker compose pull db valkey clamav ente-museum ente-web vaultwarden personal-website searxng
+docker compose build --pull app
+docker compose up -d --remove-orphans --wait --wait-timeout 180
+./scripts/configure-nextcloud-valkey.sh
+docker compose ps
 ```
 
-This provides a menu for:
-- View logs
-- Restart containers
-- Update Nextcloud
-- Backups
-- And more
+Open `https://cloud.thonbecker.biz` and finish the initial Nextcloud admin
+setup. Then configure Client Push:
 
-## Cost Summary
+```bash
+./scripts/setup-notify-push.sh
+```
 
-- Instance (16 GB, 4 vCPU): $80/month
-- S3 Storage: ~$0.023/GB/month (optional)
-- Database: Included (local MariaDB)
-- Static IP: Free
-- **Total: ~$80/month** (plus S3 if used)
+For Nextcloud Office, apply the three `richdocuments` settings documented in
+`AGENTS.md`.
 
-## Need Help?
+## 7. Finish operational setup
 
-- Check the full [README.md](README.md)
-- Check logs: `docker compose logs -f`
+```bash
+./scripts/setup-clamav.sh
+./scripts/setup-s3-backup.sh
+./scripts/ensure-autostart.sh
+./scripts/configure-lightsail-cloudflare-firewall.sh
+```
 
-## Your Nextcloud URLs
+The firewall script restricts public HTTP/HTTPS ingress to Cloudflare's current
+published ranges. Review its SSH rule before running it if SSH should be limited
+to an administrator address.
 
-- **Main URL**: https://cloud.thonbecker.biz
-- **Admin**: https://cloud.thonbecker.biz/settings/admin
-- **Files**: https://cloud.thonbecker.biz/apps/files
+For automated deployment, add the repository secrets `LIGHTSAIL_HOST`,
+`LIGHTSAIL_USER`, and `LIGHTSAIL_SSH_KEY`. Pull requests run the validation
+workflow (including actionlint); pushes to `main` validate before deploying through
+`.github/workflows/deploy.yml`.
+
+See `README.md` for routine commands and `PRODUCTION-SETUP.md` for the current
+production inventory.
