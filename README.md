@@ -31,7 +31,7 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 - **ente-web** — Ente Photos web app
 
 **Personal Website** — [thonbecker.biz](https://thonbecker.biz)
-- **personal-website** — Spring Boot app from public ECR, uses external RDS PostgreSQL and consumes `PERSONAL_*` plus `SKATETRICKS_*` env vars for OpenAI-backed AI features and skateboard video upload/transcoding/frame analysis
+- **personal-website** — Spring Boot app from public ECR, uses external RDS PostgreSQL and consumes `PERSONAL_*` plus `SKATETRICKS_*` env vars for AWS Bedrock AI features, Cloudflare Access booking administration, and skateboard video upload/transcoding/frame analysis
 
 **Vaultwarden** — Self-hosted Bitwarden-compatible password manager
 - **vaultwarden** — Password vault with browser extension, mobile, and desktop client support
@@ -47,16 +47,9 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 
 All nine domains are Cloudflare-proxied. SSL terminates at nginx via Certbot.
 
-## PersonalWeb Runtime Secrets
+## PersonalWeb Configuration
 
-The PersonalWeb OpenAI API key is stored in AWS Secrets Manager as `personalweb/openai-api-key`; booking administrator credentials are stored as `personalweb/admin-credentials`.
-Before restarting `personal-website`, sync it into the local `.env` file:
-
-```bash
-./scripts/sync-personalweb-openai-secret.sh
-```
-
-The script uses `PERSONAL_AWS_ACCESS_KEY_ID`, `PERSONAL_AWS_SECRET_ACCESS_KEY`, and `PERSONAL_AWS_REGION` from `.env`, then writes the OpenAI model variables and `PERSONAL_ADMIN_USERNAME`/`PERSONAL_ADMIN_PASSWORD` for Docker Compose.
+PersonalWeb uses AWS Bedrock for generative AI (Claude Converse for chat/trivia/vision, Titan Text Embeddings v2 for vector embeddings, and Nova Canvas for landscape images) using the AWS IAM credentials in `.env`. Booking administration is restricted to the Cloudflare Access admin identity (`PERSONAL_CF_ACCESS_*`).
 
 ## Prerequisites
 

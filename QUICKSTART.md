@@ -73,12 +73,6 @@ Generate the ignored Ente configuration after `.env` is complete:
 ./scripts/generate-museum-yaml.sh
 ```
 
-For production, sync the PersonalWeb runtime secrets before each restart:
-
-```bash
-./scripts/sync-personalweb-openai-secret.sh
-```
-
 ## 4. Issue TLS certificates
 
 Install a narrowly scoped Cloudflare API token at

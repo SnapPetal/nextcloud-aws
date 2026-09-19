@@ -82,9 +82,6 @@ jobs:
             # Generate museum.yaml from template + .env secrets
             ./scripts/generate-museum-yaml.sh
 
-            # Sync PersonalWeb OpenAI key from AWS Secrets Manager into .env
-            ./scripts/sync-personalweb-openai-secret.sh
-
             # Keep every repo-managed virtual host enabled.
             for config in nginx/*; do
               target="/etc/nginx/sites-enabled/$(basename "$config")"

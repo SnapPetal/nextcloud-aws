@@ -68,15 +68,9 @@ S3 available for overflow storage if needed.
 - `/var/lib/nextcloud/mysql` → `/var/lib/mysql` (MariaDB data)
 - `/var/lib/personal-website/videos` → `/app/videos` (video processing)
 
-## PersonalWeb Runtime Secrets
+## PersonalWeb Runtime Configuration
 
-`personal-website` reads its OpenAI key and booking administrator credentials from the compose environment. Values are sourced from `personalweb/openai-api-key` and `personalweb/admin-credentials` by running:
-
-```bash
-./scripts/sync-personalweb-openai-secret.sh
-```
-
-The GitHub deploy workflow and `scripts/update-server.sh` run this sync before restarting containers.
+`personal-website` uses AWS Bedrock for generative AI (Claude Converse, Titan Embeddings v2, and Nova Canvas) authenticated via the AWS IAM credentials in `.env`. Booking administration is restricted to the Cloudflare Access admin identity (`PERSONAL_CF_ACCESS_*`), with no legacy password credentials or OpenAI secrets required.
 
 ## Installed Nextcloud Apps
 

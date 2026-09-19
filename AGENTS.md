@@ -146,9 +146,7 @@ sudo certbot renew             # force manual renewal
 
 ## Configuration
 
-`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET, S3_DB_BACKUP_BUCKET, ENTE_* variables for Ente Photos (Postgres, S3, JWT, SMTP), and `PERSONAL_*` plus `SKATETRICKS_*` variables for the personal website (OpenAI, booking administration, Nextcloud CalDAV, Perenual API, AWS media services, and MediaConvert-backed skateboard video processing).
-
-Run `./scripts/sync-personalweb-openai-secret.sh` before restarting `personal-website`. It reads `personalweb/openai-api-key` and `personalweb/admin-credentials` from AWS Secrets Manager using the `PERSONAL_AWS_*` credentials in `.env`, then writes the runtime values back to `.env` for Docker Compose.
+`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET, S3_DB_BACKUP_BUCKET, ENTE_* variables for Ente Photos (Postgres, S3, JWT, SMTP), and `PERSONAL_*` plus `SKATETRICKS_*` variables for the personal website (AWS Bedrock, Cloudflare Access booking administration, Nextcloud CalDAV, Perenual API, AWS media services, and MediaConvert-backed skateboard video processing).
 
 The Lightsail instance is 4 vCPU / 16 GB RAM. PHP is tuned with `PHP_MEMORY_LIMIT=4G`, `PHP_UPLOAD_LIMIT=10G`, Opcache 512 MB. MariaDB runs with `--transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW` as Nextcloud requires.
 

@@ -22,13 +22,7 @@ echo "-----------------------------------"
 echo "✅ Netdata updated"
 
 echo ""
-echo "Step 3: Syncing PersonalWeb OpenAI secret..."
-echo "-----------------------------------"
-./scripts/sync-personalweb-openai-secret.sh
-echo "✅ PersonalWeb OpenAI secret synced"
-
-echo ""
-echo "Step 4: Pulling latest images and rebuilding (including SearXNG)..."
+echo "Step 3: Pulling latest images and rebuilding (including SearXNG)..."
 echo "-----------------------------------"
 if [ ! -f searxng/core-config/limiter.toml ]; then
     echo "ERROR: searxng/core-config/limiter.toml is missing"
@@ -44,7 +38,7 @@ docker compose up -d --remove-orphans
 docker compose up -d --force-recreate searxng
 
 echo ""
-echo "Step 5: Waiting for Nextcloud to be ready..."
+echo "Step 4: Waiting for Nextcloud to be ready..."
 echo "-----------------------------------"
 sleep 10
 
