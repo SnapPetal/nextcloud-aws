@@ -1,4 +1,4 @@
-name: Deploy to AWS Lightsail
+name: Deploy
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: production-deploy
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
