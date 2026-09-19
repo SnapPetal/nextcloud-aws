@@ -255,7 +255,6 @@ nextcloud-aws/
 ├── Dockerfile                  # Custom Nextcloud image
 ├── supervisord.conf            # Apache + cron in app container
 ├── .env.example                # Environment variables template
-├── CLAUDE.md                   # Claude Code project instructions
 ├── QUICKSTART.md               # Setup guide
 └── README.md                   # This file
 ```
