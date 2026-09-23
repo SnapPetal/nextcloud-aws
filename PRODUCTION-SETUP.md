@@ -14,9 +14,8 @@ This file documents the actual production configuration of cloud.thonbecker.biz.
 |----------|------|-------|------|
 | Instance | nextcloud-prod | Ubuntu 22.04, 16 GB RAM, 4 vCPU | $80/month |
 | S3 Storage | External storage | ~$0.023/GB/month | Variable |
-| Database | Local MariaDB | Container (included) | $0 |
+| Database | Managed PostgreSQL | Shared Lightsail PostgreSQL service; isolated `nextcloud` database | Variable |
 | Static IP | nextcloud-prod-ip | IPv4 | Free |
-| RDS | Personal Website DB | PostgreSQL | Variable |
 | **Total** | | | **~$80/month + RDS + S3** |
 
 ### Storage
@@ -24,7 +23,6 @@ This file documents the actual production configuration of cloud.thonbecker.biz.
 All data lives on the root filesystem under `/var/lib/nextcloud/`:
 
 - `app/` — Nextcloud application files
-- `mysql/` — MariaDB data
 - `data/` — User files and backups (`DATA_PATH` in `.env`)
 
 S3 available for overflow storage if needed.
@@ -51,9 +49,9 @@ S3 available for overflow storage if needed.
 
 ## Docker Configuration
 
-**Containers (9 total):**
+**Containers (8 total):**
 - `nextcloud-app`: Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor)
-- `nextcloud-db`: MariaDB 10.11 (pinned)
+- Nextcloud uses the dedicated `nextcloud` database on the shared managed PostgreSQL service
 - `valkey`: Valkey shared by Nextcloud (database 0) and SearXNG (database 1)
 - `nextcloud-clamav`: ClamAV antivirus
 - `ente-museum`: Ente API server using the managed PostgreSQL `ente_db` database
@@ -65,7 +63,6 @@ S3 available for overflow storage if needed.
 **Volumes:**
 - `/var/lib/nextcloud/app` → `/var/www/html` (application files)
 - `/var/lib/nextcloud/data/data` → `/var/www/html/data` (user files)
-- `/var/lib/nextcloud/mysql` → `/var/lib/mysql` (MariaDB data)
 - `/var/lib/personal-website/videos` → `/app/videos` (video processing)
 
 ## PersonalWeb Runtime Configuration
@@ -104,7 +101,7 @@ S3 available for overflow storage if needed.
 ## Backup Strategy
 
 **Automated S3 backups (daily at 2:00 AM):**
-- MariaDB → `s3://${S3_DB_BACKUP_BUCKET}/mariadb/`
+- Nextcloud PostgreSQL → `s3://${S3_DB_BACKUP_BUCKET}/postgresql/`
 - Vaultwarden SQLite → `s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/`
 - 3 local copies retained in `/var/lib/nextcloud/data/backups/`
 - S3 objects expire after 7 days (CDK lifecycle rule)
@@ -144,7 +141,7 @@ S3 available for overflow storage if needed.
 5. Restart changed containers
 6. Reload nginx
 7. Configure Nextcloud to use shared Valkey
-8. Verify all 9 containers running
+8. Verify all 8 containers running
 
 ## Access
 

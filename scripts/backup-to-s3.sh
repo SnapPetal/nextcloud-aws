@@ -1,22 +1,26 @@
 #!/bin/bash
 
 # Automated Database Backup to S3
-# Backs up MariaDB (Nextcloud) and SQLite (Vaultwarden),
+# Backs up PostgreSQL (Nextcloud) and SQLite (Vaultwarden),
 # retains last 3 local copies, and uploads to S3.
 #
 # Bucket priority:
 #   S3_DB_BACKUP_BUCKET  — dedicated bucket (setup-db-backup-bucket.sh); uploads to
-#                          mariadb/ and vaultwarden/ prefixes
-#   S3_BUCKET            — legacy fallback; uploads to backups/ (MariaDB only)
+#                          postgresql/ and vaultwarden/ prefixes
+#   S3_BUCKET            — legacy fallback; uploads to backups/ (PostgreSQL only)
 
 set -eo pipefail
 
 cd ~/nextcloud-aws || exit 1
 source .env
 
+# .env also contains the Netdata SNS credentials, which cannot write database
+# backups. Use the dedicated backup account configured in ~/.aws instead.
+unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_DEFAULT_REGION
+
 BACKUP_DIR="/var/lib/nextcloud/data/backups"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-MARIADB_FILE="nextcloud-db-${TIMESTAMP}.sql.gz"
+POSTGRES_FILE="nextcloud-db-${TIMESTAMP}.sql.gz"
 VW_FILE="vaultwarden-db-${TIMESTAMP}.sqlite3.gz"
 VW_DATA_FILE="vaultwarden-data-${TIMESTAMP}.tar.gz"
 LOG_FILE="${BACKUP_DIR}/backup.log"
@@ -29,30 +33,41 @@ log() {
 sudo mkdir -p "$BACKUP_DIR"
 sudo chown "$USER:$USER" "$BACKUP_DIR"
 
-# ── MariaDB backup ──────────────────────────────────────────────────────────
+# ── PostgreSQL backup ───────────────────────────────────────────────────────
 
-log "Starting MariaDB backup..."
+log "Starting PostgreSQL backup..."
 
-docker compose exec -T db mariadb-dump \
-    -u root -p"${DB_ROOT_PASSWORD}" \
-    --single-transaction \
-    "${DB_NAME}" | gzip > "${BACKUP_DIR}/${MARIADB_FILE}"
+docker run --rm \
+    -e PGPASSWORD="${NEXTCLOUD_POSTGRES_PASSWORD}" \
+    postgres:18-alpine \
+    pg_dump \
+        --host="${NEXTCLOUD_POSTGRES_HOST}" \
+        --port="${NEXTCLOUD_POSTGRES_PORT}" \
+        --username="${NEXTCLOUD_POSTGRES_USER}" \
+        --no-owner \
+        --no-privileges \
+        "${NEXTCLOUD_POSTGRES_DB}" | gzip > "${BACKUP_DIR}/${POSTGRES_FILE}"
 
-if [ ! -s "${BACKUP_DIR}/${MARIADB_FILE}" ]; then
-    log "ERROR: MariaDB backup file is empty or missing!"
+if [ ! -s "${BACKUP_DIR}/${POSTGRES_FILE}" ]; then
+    log "ERROR: PostgreSQL backup file is empty or missing!"
     exit 1
 fi
 
-log "MariaDB backup created: ${MARIADB_FILE} ($(du -h "${BACKUP_DIR}/${MARIADB_FILE}" | cut -f1))"
+if ! gzip -t "${BACKUP_DIR}/${POSTGRES_FILE}"; then
+    log "ERROR: PostgreSQL backup gzip validation failed!"
+    exit 1
+fi
 
-# Retain only the last 3 MariaDB backups locally
-log "Cleaning old local MariaDB backups (keeping last 3)..."
+log "PostgreSQL backup created: ${POSTGRES_FILE} ($(du -h "${BACKUP_DIR}/${POSTGRES_FILE}" | cut -f1))"
+
+# Retain only the last 3 PostgreSQL backups locally
+log "Cleaning old local PostgreSQL backups (keeping last 3)..."
 cd "$BACKUP_DIR"
 ls -1t nextcloud-db-*.sql.gz 2>/dev/null | tail -n +4 | xargs -r rm -f
 cd ~/nextcloud-aws
 
 REMAINING=$(ls -1 "${BACKUP_DIR}"/nextcloud-db-*.sql.gz 2>/dev/null | wc -l)
-log "Local MariaDB backups remaining: ${REMAINING}"
+log "Local Nextcloud database backups remaining: ${REMAINING}"
 
 # ── Vaultwarden SQLite backup ────────────────────────────────────────────────
 
@@ -127,9 +142,9 @@ fi
 
 if [ -n "${S3_DB_BACKUP_BUCKET:-}" ]; then
     # Dedicated bucket: separate prefixes per database
-    log "Uploading MariaDB backup to s3://${S3_DB_BACKUP_BUCKET}/mariadb/..."
-    aws s3 cp "${BACKUP_DIR}/${MARIADB_FILE}" \
-        "s3://${S3_DB_BACKUP_BUCKET}/mariadb/${MARIADB_FILE}"
+    log "Uploading PostgreSQL backup to s3://${S3_DB_BACKUP_BUCKET}/postgresql/..."
+    aws s3 cp "${BACKUP_DIR}/${POSTGRES_FILE}" \
+        "s3://${S3_DB_BACKUP_BUCKET}/postgresql/${POSTGRES_FILE}"
 
     if [ "$VW_BACKED_UP" = true ]; then
         log "Uploading Vaultwarden backup to s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/..."
@@ -142,8 +157,8 @@ if [ -n "${S3_DB_BACKUP_BUCKET:-}" ]; then
     log "S3 upload complete (bucket: ${S3_DB_BACKUP_BUCKET})"
 
 elif [ -n "${S3_BUCKET:-}" ]; then
-    # Legacy fallback: sync MariaDB backups to backups/ prefix
-    log "Syncing MariaDB backups to s3://${S3_BUCKET}/backups/ (legacy S3_BUCKET)..."
+    # Legacy fallback: sync PostgreSQL backups to backups/ prefix
+    log "Syncing PostgreSQL backups to s3://${S3_BUCKET}/backups/ (legacy S3_BUCKET)..."
     aws s3 sync "$BACKUP_DIR" "s3://${S3_BUCKET}/backups/" \
         --exclude "*" --include "nextcloud-db-*.sql.gz" \
         --exclude "backup.log"

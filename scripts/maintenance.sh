@@ -111,22 +111,27 @@ scan_files() {
 
 backup_database() {
     BACKUP_DIR="/var/lib/nextcloud/data/backups"
-    BACKUP_FILE="$BACKUP_DIR/nextcloud-db-$(date +%Y%m%d-%H%M%S).sql"
+    BACKUP_FILE="$BACKUP_DIR/nextcloud-db-$(date +%Y%m%d-%H%M%S).sql.gz"
 
     echo -e "${YELLOW}Creating database backup...${NC}"
     sudo mkdir -p "$BACKUP_DIR"
 
-    # Read the local MariaDB credentials from .env.
     set -a
     source .env
     set +a
 
-    docker compose exec -T db mariadb-dump \
-        -u root -p"${DB_ROOT_PASSWORD}" \
-        --single-transaction \
-        "${DB_NAME}" > "$BACKUP_FILE"
+    docker run --rm \
+        -e PGPASSWORD="${NEXTCLOUD_POSTGRES_PASSWORD}" \
+        postgres:18-alpine \
+        pg_dump \
+            --host="${NEXTCLOUD_POSTGRES_HOST}" \
+            --port="${NEXTCLOUD_POSTGRES_PORT}" \
+            --username="${NEXTCLOUD_POSTGRES_USER}" \
+            --no-owner \
+            --no-privileges \
+            "${NEXTCLOUD_POSTGRES_DB}" | gzip > "$BACKUP_FILE"
 
-    if [ -s "$BACKUP_FILE" ]; then
+    if [ -s "$BACKUP_FILE" ] && gzip -t "$BACKUP_FILE"; then
         sudo chown "$USER:$USER" "$BACKUP_FILE"
         echo -e "${GREEN}Database backup created: $BACKUP_FILE${NC}"
         ls -lh "$BACKUP_FILE"

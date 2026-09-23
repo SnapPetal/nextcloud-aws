@@ -8,8 +8,8 @@ TLS certificates matching the paths in `nginx/`.
 ## 1. Create the Lightsail host
 
 Create an Ubuntu 22.04 Lightsail instance with 16 GB RAM, 4 vCPU, a static IP,
-and enough root-disk capacity for `/var/lib/nextcloud`. MariaDB runs locally in
-Docker; do not create a separate database for Nextcloud.
+and enough root-disk capacity for `/var/lib/nextcloud`. Provision a reachable
+PostgreSQL database and a dedicated `nextcloud` database and login role.
 
 Create Cloudflare-proxied DNS records pointing at the static IP for:
 
@@ -47,16 +47,17 @@ The core Nextcloud values are:
 
 ```env
 DOMAIN=cloud.thonbecker.biz
-DB_ROOT_PASSWORD=<strong-local-mariadb-root-password>
-DB_NAME=nextcloud
-DB_USER=nextcloud
-DB_PASSWORD=<strong-local-mariadb-password>
+NEXTCLOUD_POSTGRES_HOST=<postgres-host-or-ip>
+NEXTCLOUD_POSTGRES_PORT=5432
+NEXTCLOUD_POSTGRES_DB=nextcloud
+NEXTCLOUD_POSTGRES_USER=nextcloud
+NEXTCLOUD_POSTGRES_PASSWORD=<strong-nextcloud-postgres-password>
 DATA_PATH=/var/lib/nextcloud/data
 SEARXNG_SECRET=<output-of-openssl-rand-hex-32>
 ```
 
-There is no `DB_HOST` or `MYSQL_ROOT_PASSWORD` setting: Compose uses the local
-`db` service and reads `DB_ROOT_PASSWORD`.
+The PostgreSQL endpoint must require TLS. Nextcloud stores its database
+connection configuration after initial setup.
 
 Before starting the full stack, also configure:
 
@@ -146,7 +147,7 @@ configuration lives in `netdata/`.
 
 ```bash
 docker compose config -q
-docker compose pull db valkey clamav ente-museum ente-web vaultwarden personal-website searxng
+docker compose pull valkey clamav ente-museum ente-web vaultwarden personal-website searxng
 docker compose build --pull app
 docker compose up -d --remove-orphans --wait --wait-timeout 180
 ./scripts/configure-nextcloud-valkey.sh

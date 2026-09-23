@@ -1,25 +1,4 @@
 services:
-  db:
-    image: mariadb:11.4
-    container_name: nextcloud-db
-    restart: unless-stopped
-    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW --innodb-buffer-pool-size=2G
-    volumes:
-      - /var/lib/nextcloud/mysql:/var/lib/mysql
-    environment:
-      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${DB_NAME}
-      - MYSQL_USER=${DB_USER}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-    networks:
-      - nextcloud-net
-    healthcheck:
-      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
   valkey:
     image: valkey/valkey:8-alpine
     container_name: valkey
@@ -44,12 +23,6 @@ services:
     tmpfs:
       - /tmp:exec,size=4G
     environment:
-      # Database Configuration (local MariaDB container)
-      - MYSQL_HOST=db
-      - MYSQL_DATABASE=${DB_NAME}
-      - MYSQL_USER=${DB_USER}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-
       # Redis-compatible Valkey configuration
       - REDIS_HOST=valkey
 
@@ -74,7 +47,6 @@ services:
     extra_hosts:
       - "cloud.thonbecker.biz:host-gateway"
     depends_on:
-      - db
       - valkey
       - clamav
     networks:

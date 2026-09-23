@@ -47,7 +47,7 @@ Nine containers in docker-compose.yml:
 
 **Nextcloud:**
 - **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor), binds 127.0.0.1:8080 + 127.0.0.1:7867 (notify_push)
-- **nextcloud-db** — MariaDB 10.11, data at /var/lib/nextcloud/mysql
+- **Managed PostgreSQL** — Shared Lightsail PostgreSQL service; Nextcloud uses the dedicated `nextcloud` database
 - **valkey** — Valkey 8, shared by Nextcloud (database 0) and SearXNG (database 1)
 - **nextcloud-clamav** — ClamAV antivirus daemon on port 3310
 
@@ -146,9 +146,9 @@ sudo certbot renew             # force manual renewal
 
 ## Configuration
 
-`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, DB_ROOT_PASSWORD, DB_NAME, DB_USER, DB_PASSWORD, DATA_PATH, S3_BUCKET, S3_DB_BACKUP_BUCKET, ENTE_* variables for Ente Photos (Postgres, S3, JWT, SMTP), and `PERSONAL_*` plus `SKATETRICKS_*` variables for the personal website (AWS Bedrock, Cloudflare Access booking administration, Nextcloud CalDAV, Perenual API, AWS media services, and MediaConvert-backed skateboard video processing).
+`.env` (gitignored, copy from `.env.example`) provides: DOMAIN, NEXTCLOUD_POSTGRES_* connection variables, DATA_PATH, S3_BUCKET, S3_DB_BACKUP_BUCKET, ENTE_* variables for Ente Photos (Postgres, S3, JWT, SMTP), and `PERSONAL_*` plus `SKATETRICKS_*` variables for the personal website (AWS Bedrock, Cloudflare Access booking administration, Nextcloud CalDAV, Perenual API, AWS media services, and MediaConvert-backed skateboard video processing).
 
-The Lightsail instance is 4 vCPU / 16 GB RAM. PHP is tuned with `PHP_MEMORY_LIMIT=4G`, `PHP_UPLOAD_LIMIT=10G`, Opcache 512 MB. MariaDB runs with `--transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW` as Nextcloud requires.
+The Lightsail instance is 4 vCPU / 16 GB RAM. PHP is tuned with `PHP_MEMORY_LIMIT=4G`, `PHP_UPLOAD_LIMIT=10G`, Opcache 512 MB. Nextcloud connects over TLS to the shared PostgreSQL 18 service.
 
 ## Nginx
 
@@ -237,14 +237,14 @@ aws sns publish --topic-arn "$SNS_ARN" --message "test" --subject "test"
 ## Backups
 
 `scripts/backup-to-s3.sh` runs nightly at 02:00 via cron. Backs up the local application databases and uploads to S3:
-- MariaDB → `s3://${S3_DB_BACKUP_BUCKET}/mariadb/`
+- Nextcloud PostgreSQL → `s3://${S3_DB_BACKUP_BUCKET}/postgresql/`
 - SQLite (Vaultwarden) → `s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/`
 
 Keeps last 3 local copies in `/var/lib/nextcloud/data/backups/`. Cron log at `/var/lib/nextcloud/data/backups/cron.log`.
 
 ## CI/CD
 
-`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, configures shared Valkey, reloads nginx, then verifies all 9 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
+`.github/workflows/deploy.yml` — On push to `main`, SSHes into the Lightsail instance, pulls code, pulls latest Docker images, rebuilds app image, restarts stack, configures shared Valkey, reloads nginx, then verifies all 8 containers are running. Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
 **Deployment safety notes:**
 - `docker compose up -d` only restarts containers whose image or config actually changed — services with unchanged images are not touched

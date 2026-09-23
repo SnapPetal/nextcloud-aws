@@ -21,7 +21,7 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 
 **Nextcloud** — Self-hosted cloud storage and collaboration
 - **nextcloud-app** — Custom Dockerfile (nextcloud:apache + ffmpeg/ghostscript/imagemagick/supervisor)
-- **nextcloud-db** — MariaDB 10.11 (pinned)
+- **Managed PostgreSQL** — Nextcloud uses the separate `nextcloud` database on the shared Lightsail PostgreSQL service
 - **valkey** — Valkey, shared by Nextcloud (database 0) and SearXNG (database 1)
 - **nextcloud-clamav** — ClamAV antivirus scanning for uploaded files
 
@@ -95,7 +95,7 @@ docker compose exec -u www-data app php occ maintenance:mode --off
 # Configure Nextcloud to use shared Valkey database 0
 ./scripts/configure-nextcloud-valkey.sh
 
-# Database backup to S3 (MariaDB + Vaultwarden SQLite)
+# Database backup to S3 (PostgreSQL + Vaultwarden SQLite)
 ./scripts/backup-to-s3.sh
 
 # Reload nginx after config changes
@@ -134,7 +134,7 @@ docker compose up -d vaultwarden
 
 ### Vaultwarden upgrades
 
-Application images use the `latest` tag, while MariaDB 10.11 and Valkey 8 are pinned to supported major versions. Ente and the Personal Website use the managed PostgreSQL service. Review release notes and compatibility before deploying updates.
+Application images use the `latest` tag, while Valkey 8 is pinned to a supported major version. Nextcloud, Ente, and the Personal Website use isolated databases on the shared managed PostgreSQL service. Review release notes and compatibility before deploying updates.
 
 Before upgrading, confirm the nightly backup completed successfully:
 
@@ -156,7 +156,7 @@ Keep the previous image tag available until login, browser-extension sync, invit
 ## Backups
 
 `scripts/backup-to-s3.sh` runs nightly at 02:00 via cron:
-- MariaDB → S3
+- Nextcloud PostgreSQL → S3
 - Vaultwarden consistent SQLite snapshot → S3
 - Vaultwarden recovery data (RSA key, attachments, Sends, and config) → S3
 
@@ -175,7 +175,7 @@ GitHub Actions deployment:
 5. Restarts changed containers
 6. Reloads nginx
 7. Configures Nextcloud to use shared Valkey
-8. Verifies all 9 containers are running
+8. Verifies all 8 containers are running
 
 Uses secrets: `LIGHTSAIL_HOST`, `LIGHTSAIL_USER`, `LIGHTSAIL_SSH_KEY`.
 
@@ -191,7 +191,7 @@ Dependabot checks weekly for GitHub Actions and Docker base image updates.
 | Root Disk | 320 GB SSD (included) | $0 |
 | Static IP | IPv4 | Free |
 | SSL Certificates | Let's Encrypt (Certbot) | Free |
-| RDS (Personal Website) | PostgreSQL | Variable |
+| Lightsail managed database | PostgreSQL (Nextcloud, Ente, Personal Website) | Variable |
 | **Total** | | **~$80/mo + RDS** |
 
 ### Storage
@@ -251,7 +251,7 @@ nextcloud-aws/
 │   ├── setup-server.sh         # Initial server setup
 │   └── update-server.sh        # Server update script
 ├── searxng/                    # SearXNG configuration and cache mount
-├── docker-compose.yml          # All 9 containers
+├── docker-compose.yml          # All 8 containers
 ├── Dockerfile                  # Custom Nextcloud image
 ├── supervisord.conf            # Apache + cron in app container
 ├── .env.example                # Environment variables template
