@@ -3,7 +3,7 @@ services:
     image: mariadb:11.4
     container_name: nextcloud-db
     restart: unless-stopped
-    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW
+    command: --transaction-isolation=READ-COMMITTED --log-bin=binlog --binlog-format=ROW --innodb-buffer-pool-size=2G
     volumes:
       - /var/lib/nextcloud/mysql:/var/lib/mysql
     environment:
