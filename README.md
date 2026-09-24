@@ -45,7 +45,9 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
 - HTTP health checks for all services (localhost)
 - Upgrade with `./scripts/update-netdata.sh`
 
-All nine domains are Cloudflare-proxied. SSL terminates at nginx via Certbot.
+All nine domains are Cloudflare-proxied. Cloudflare uses Full (strict) TLS to the
+Nginx origin, where SSL terminates via Certbot. Dynamic Nextcloud, Ente API, and
+Vaultwarden traffic bypasses Cloudflare caching.
 
 ## PersonalWeb Configuration
 

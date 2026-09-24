@@ -23,7 +23,7 @@ Internet → Cloudflare (proxy) → Nginx (host, SSL via Certbot) → Docker bri
   search.thonbecker.biz       → 127.0.0.1:8085 (SearXNG)
 ```
 
-All nine domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). Incoming IPs seen by nginx are Cloudflare ranges — trusted proxies are configured for RFC-1918 ranges which covers the nginx→container hop. Certbot uses the Cloudflare DNS authenticator (DNS-01 challenge), creating temporary `_acme-challenge` TXT records with a narrowly scoped API token.
+All nine domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles DDoS protection and caching; SSL terminates at nginx (Certbot certs). The zone uses **Full (strict)** encryption from Cloudflare to the origin. Nginx restores the client address from `CF-Connecting-IP` only for Cloudflare's published IP ranges via `nginx/cloudflare-real-ip.conf`; the container hop remains covered by the trusted RFC-1918 ranges. Certbot uses the Cloudflare DNS authenticator (DNS-01 challenge), creating temporary `_acme-challenge` TXT records with a narrowly scoped API token.
 
 **Cloudflare feature settings:**
 
@@ -31,6 +31,7 @@ All nine domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles D
 |---|---|---|
 | HTTP/2 to Origin | ✅ On | nginx supports it |
 | HTTP/3 (with QUIC) | ✅ On | Faster connections |
+| SSL/TLS mode | Full (strict) | Validates the origin Certbot certificate |
 | 0-RTT Connection Resumption | Off | Minor replay attack risk, little benefit |
 | Always Use HTTPS | ✅ On | Belt-and-suspenders with nginx |
 | TLS 1.3 | ✅ On | nginx supports it |
@@ -42,6 +43,12 @@ All nine domains are **Cloudflare-proxied** (orange cloud). Cloudflare handles D
 | Web Analytics (RUM) | Off | Injects JS into pages, can interfere with Nextcloud's CSP headers |
 | Rocket Loader | ❌ Off | Breaks Nextcloud's JavaScript — never enable |
 | Mirage / Polish | ❌ Off | Can corrupt file transfers and break previews |
+
+Cloudflare cache is bypassed for `cloud.thonbecker.biz`, `photos-api.thonbecker.biz`,
+and `vault.thonbecker.biz`; these services are authenticated or API-driven and
+must not be cached. The managed Cloudflare WAF and leaked-credential protection
+remain enabled. The zone currently has no custom login rate-limit rule because
+its single rate-limit slot is occupied by the managed leaked-credential check.
 
 Nine containers in docker-compose.yml:
 
@@ -272,7 +279,7 @@ aws <command>
 - `supervisord.conf` runs both apache2 and cron inside the app container (runs as root explicitly to suppress supervisord warning)
 - Nginx runs on the host (not containerized) handling SSL termination and reverse proxy
 - Netdata runs on the host (not containerized) as a native systemd service for true host-level observability
-- All nine domains are Cloudflare-proxied; nginx sees Cloudflare IPs, not real client IPs
+- All nine domains are Cloudflare-proxied; nginx restores real client IPs from `CF-Connecting-IP` only from Cloudflare's published ranges
 - Trusted proxies configured for RFC-1918 ranges to handle Nginx forwarding
 - `nextcloud-app` has `extra_hosts: cloud.thonbecker.biz:host-gateway` so internal server-to-self requests route via the Docker bridge to nginx rather than through Cloudflare
 - All nginx virtual host configs are version-controlled in `nginx/` — symlinked from `/etc/nginx/sites-enabled/`
