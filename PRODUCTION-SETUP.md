@@ -101,7 +101,6 @@ S3 available for overflow storage if needed.
 ## Backup Strategy
 
 **Automated S3 backups (daily at 2:00 AM):**
-- Nextcloud PostgreSQL → `s3://${S3_DB_BACKUP_BUCKET}/postgresql/`
 - Vaultwarden SQLite → `s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/`
 - 3 local copies retained in `/var/lib/nextcloud/data/backups/`
 - S3 objects expire after 7 days (CDK lifecycle rule)

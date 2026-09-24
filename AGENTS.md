@@ -123,7 +123,7 @@ docker compose exec -u www-data app php occ maintenance:mode --off
 # Update (pull latest images + rebuild app)
 ./scripts/update-server.sh
 
-# Database backup to S3 (MariaDB + Vaultwarden SQLite)
+# Vaultwarden backup to S3
 ./scripts/backup-to-s3.sh
 
 # Reload nginx after config changes
@@ -236,8 +236,7 @@ aws sns publish --topic-arn "$SNS_ARN" --message "test" --subject "test"
 
 ## Backups
 
-`scripts/backup-to-s3.sh` runs nightly at 02:00 via cron. Backs up the local application databases and uploads to S3:
-- Nextcloud PostgreSQL → `s3://${S3_DB_BACKUP_BUCKET}/postgresql/`
+`scripts/backup-to-s3.sh` runs nightly at 02:00 via cron. Backs up Vaultwarden and uploads to S3:
 - SQLite (Vaultwarden) → `s3://${S3_DB_BACKUP_BUCKET}/vaultwarden/`
 
 Keeps last 3 local copies in `/var/lib/nextcloud/data/backups/`. Cron log at `/var/lib/nextcloud/data/backups/cron.log`.

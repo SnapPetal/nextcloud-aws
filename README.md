@@ -95,7 +95,7 @@ docker compose exec -u www-data app php occ maintenance:mode --off
 # Configure Nextcloud to use shared Valkey database 0
 ./scripts/configure-nextcloud-valkey.sh
 
-# Database backup to S3 (PostgreSQL + Vaultwarden SQLite)
+# Vaultwarden backup to S3
 ./scripts/backup-to-s3.sh
 
 # Reload nginx after config changes
@@ -156,7 +156,6 @@ Keep the previous image tag available until login, browser-extension sync, invit
 ## Backups
 
 `scripts/backup-to-s3.sh` runs nightly at 02:00 via cron:
-- Nextcloud PostgreSQL → S3
 - Vaultwarden consistent SQLite snapshot → S3
 - Vaultwarden recovery data (RSA key, attachments, Sends, and config) → S3
 
