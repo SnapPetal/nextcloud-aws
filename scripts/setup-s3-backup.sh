@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# One-time setup for automated S3 database backups.
+# One-time setup for automated Vaultwarden backups.
 #
 # The backup bucket and IAM user are managed by CDK (HomeWeb db-backup-stack).
 # This script configures AWS credentials on the server and wires up the cron job.
@@ -110,7 +110,7 @@ echo ""
 echo "Backups will:"
 echo "  - Run daily at 2:00 AM"
 echo "  - Save locally to /var/lib/nextcloud/data/backups/"
-echo "  - Keep the last 3 local copies per database"
+echo "  - Keep the last 3 local Vaultwarden copies"
 echo "  - Upload to:"
 echo "  - S3 objects expire automatically after 7 days (CDK lifecycle rule)"
 echo ""

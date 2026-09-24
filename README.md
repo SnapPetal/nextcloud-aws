@@ -242,7 +242,7 @@ nextcloud-aws/
 │   ├── vault.thonbecker.biz    # vault.thonbecker.biz
 │   └── search.thonbecker.biz   # search.thonbecker.biz
 ├── scripts/
-│   ├── backup-to-s3.sh         # Database backup to S3
+│   ├── backup-to-s3.sh         # Vaultwarden backup to S3
 │   ├── configure-nextcloud-valkey.sh # Configure shared Valkey database 0
 │   ├── generate-museum-yaml.sh # Ente Museum config generator
 │   ├── maintenance.sh          # Interactive maintenance menu
