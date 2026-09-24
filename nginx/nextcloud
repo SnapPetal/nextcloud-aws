@@ -32,15 +32,8 @@ server {
     client_body_timeout 300s;
     fastcgi_buffers 64 4K;
 
-    # Add headers for Nextcloud
+    # Keep HSTS at the origin; Nextcloud supplies its application headers.
     add_header Strict-Transport-Security "max-age=15768000; includeSubDomains; preload;" always;
-    add_header Referrer-Policy "no-referrer" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Download-Options "noopen" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Permitted-Cross-Domain-Policies "none" always;
-    add_header X-Robots-Tag "noindex, nofollow" always;
-    add_header X-XSS-Protection "1; mode=block" always;
 
     # CalDAV and CardDAV redirects
     location = /.well-known/carddav {

@@ -83,7 +83,9 @@ jobs:
             ./scripts/generate-museum-yaml.sh
 
             # Keep every repo-managed virtual host enabled.
+            sudo install -D -m 0644 "$PWD/nginx/cloudflare-real-ip.conf" /etc/nginx/conf.d/cloudflare-real-ip.conf
             for config in nginx/*; do
+              [ -f "$config" ] || continue
               target="/etc/nginx/sites-enabled/$(basename "$config")"
               if [ -e "$target" ] && [ ! -L "$target" ]; then
                 echo "Refusing to replace regular nginx file: $target"
